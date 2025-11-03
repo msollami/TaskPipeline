@@ -1,0 +1,647 @@
+//
+//  FocusedTaskView.swift
+//  TaskTimer
+//
+//  Compact focused view with timeline-based interface
+//
+
+import SwiftUI
+
+// MARK: - Digital Clock Components
+
+struct DigitalClockView: View {
+    let timeString: String
+    let glowColor: Color
+
+    init(timeString: String, glowColor: Color = Color(red: 0.2, green: 1.0, blue: 0.3)) {
+        self.timeString = timeString
+        self.glowColor = glowColor
+    }
+
+    var body: some View {
+        HStack(spacing: 3) {
+            ForEach(Array(timeString.enumerated()), id: \.offset) { index, char in
+                if char == ":" {
+                    ColonView(glowColor: glowColor)
+                } else {
+                    DigitView(digit: String(char), glowColor: glowColor)
+                }
+            }
+        }
+    }
+}
+
+struct DigitView: View {
+    let digit: String
+    let glowColor: Color
+
+    var body: some View {
+        ZStack {
+            // Background dimmed segments
+            SegmentedDigit(digit: digit, isBackground: true)
+                .opacity(0.12)
+
+            // Active glowing segments
+            SegmentedDigit(digit: digit, isBackground: false)
+                .foregroundColor(glowColor)
+                .shadow(color: glowColor.opacity(0.8), radius: 6, x: 0, y: 0)
+                .shadow(color: glowColor.opacity(0.4), radius: 3, x: 0, y: 0)
+        }
+        .frame(width: 22, height: 38)
+    }
+}
+
+struct ColonView: View {
+    let glowColor: Color
+
+    var body: some View {
+        VStack(spacing: 8) {
+            Circle()
+                .fill(glowColor)
+                .frame(width: 3, height: 3)
+                .shadow(color: glowColor.opacity(0.8), radius: 3, x: 0, y: 0)
+
+            Circle()
+                .fill(glowColor)
+                .frame(width: 3, height: 3)
+                .shadow(color: glowColor.opacity(0.8), radius: 3, x: 0, y: 0)
+        }
+        .frame(width: 6, height: 38)
+    }
+}
+
+struct SegmentedDigit: View {
+    let digit: String
+    let isBackground: Bool
+
+    var body: some View {
+        let segments = segmentsForDigit(digit)
+
+        GeometryReader { geo in
+            let width = geo.size.width
+            let height = geo.size.height
+            let segmentWidth = width * 0.8
+            let segmentHeight = (height - 6) / 2
+            let thickness: CGFloat = 2.5
+
+            ZStack {
+                // Top horizontal (a)
+                if isBackground || segments.contains("a") {
+                    Capsule()
+                        .fill(glowColor)
+                        .frame(width: segmentWidth, height: thickness)
+                        .position(x: width / 2, y: thickness / 2)
+                }
+
+                // Top right vertical (b)
+                if isBackground || segments.contains("b") {
+                    Capsule()
+                        .fill(glowColor)
+                        .frame(width: thickness, height: segmentHeight)
+                        .position(x: width - thickness, y: height / 4)
+                }
+
+                // Bottom right vertical (c)
+                if isBackground || segments.contains("c") {
+                    Capsule()
+                        .fill(glowColor)
+                        .frame(width: thickness, height: segmentHeight)
+                        .position(x: width - thickness, y: height * 0.75)
+                }
+
+                // Bottom horizontal (d)
+                if isBackground || segments.contains("d") {
+                    Capsule()
+                        .fill(glowColor)
+                        .frame(width: segmentWidth, height: thickness)
+                        .position(x: width / 2, y: height - thickness / 2)
+                }
+
+                // Bottom left vertical (e)
+                if isBackground || segments.contains("e") {
+                    Capsule()
+                        .fill(glowColor)
+                        .frame(width: thickness, height: segmentHeight)
+                        .position(x: thickness, y: height * 0.75)
+                }
+
+                // Top left vertical (f)
+                if isBackground || segments.contains("f") {
+                    Capsule()
+                        .fill(glowColor)
+                        .frame(width: thickness, height: segmentHeight)
+                        .position(x: thickness, y: height / 4)
+                }
+
+                // Middle horizontal (g)
+                if isBackground || segments.contains("g") {
+                    Capsule()
+                        .fill(glowColor)
+                        .frame(width: segmentWidth, height: thickness)
+                        .position(x: width / 2, y: height / 2)
+                }
+            }
+        }
+    }
+
+    private func segmentsForDigit(_ digit: String) -> Set<String> {
+        switch digit {
+        case "0": return ["a", "b", "c", "d", "e", "f"]
+        case "1": return ["b", "c"]
+        case "2": return ["a", "b", "g", "e", "d"]
+        case "3": return ["a", "b", "g", "c", "d"]
+        case "4": return ["f", "g", "b", "c"]
+        case "5": return ["a", "f", "g", "c", "d"]
+        case "6": return ["a", "f", "g", "e", "d", "c"]
+        case "7": return ["a", "b", "c"]
+        case "8": return ["a", "b", "c", "d", "e", "f", "g"]
+        case "9": return ["a", "b", "c", "d", "f", "g"]
+        default: return []
+        }
+    }
+
+    private var glowColor: Color {
+        Color(red: 0.2, green: 1.0, blue: 0.3)
+    }
+}
+
+struct FocusedTaskView: View {
+    @ObservedObject var timerManager: TimerManager
+    @State private var isFlashing: Bool = false
+
+    var body: some View {
+        // Safety check: Return empty if completed
+        if timerManager.isCompleted {
+            return AnyView(EmptyView())
+        }
+
+        return AnyView(
+        ZStack {
+            CompactTimelineView(timerManager: timerManager)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            // Task transition flash overlay
+            if isFlashing {
+                ZStack {
+                    // Semi-transparent dark background
+                    Rectangle()
+                        .fill(Color.black.opacity(0.85))
+                        .ignoresSafeArea()
+
+                    // Next task indicator card
+                    if let nextTask = timerManager.currentTask {
+                        HStack(spacing: 20) {
+                            // Checkmark icon
+                            ZStack {
+                                Circle()
+                                    .fill(Color.gray.opacity(0.6))
+                                    .frame(width: 60, height: 60)
+                                    .shadow(color: .black.opacity(0.3), radius: 15, x: 0, y: 0)
+
+                                Image(systemName: "checkmark")
+                                    .font(.system(size: 30, weight: .bold))
+                                    .foregroundColor(.white)
+                            }
+
+                            // "Next Task" label
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("NEXT TASK")
+                                    .font(.system(size: 12, weight: .bold))
+                                    .foregroundColor(.white.opacity(0.6))
+                                    .tracking(2)
+
+                                // Task name
+                                Text(nextTask.name)
+                                    .font(.system(size: 32, weight: .bold))
+                                    .foregroundColor(.white)
+                                    .multilineTextAlignment(.leading)
+                                    .lineLimit(2)
+                                    .minimumScaleFactor(0.6)
+
+                                // Duration info
+                                Text(formatTaskDuration(nextTask.durationMinutes))
+                                    .font(.system(size: 16, weight: .medium))
+                                    .foregroundColor(.white.opacity(0.5))
+                            }
+                        }
+                        .scaleEffect(isFlashing ? 1.0 : 0.9)
+                        .padding(30)
+                    }
+                }
+                .transition(.opacity)
+            }
+        }
+        .onChange(of: timerManager.showTaskTransitionFlash) { shouldFlash in
+            if shouldFlash {
+                withAnimation(.easeIn(duration: 0.2)) {
+                    isFlashing = true
+                }
+
+                // Hide flash after 5 seconds
+                DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
+                    withAnimation(.easeOut(duration: 0.3)) {
+                        isFlashing = false
+                    }
+                    timerManager.showTaskTransitionFlash = false
+                }
+            }
+        }
+        )
+    }
+
+    private func formatTaskDuration(_ minutes: Double) -> String {
+        if minutes < 1 {
+            let seconds = Int(minutes * 60)
+            return "\(seconds) seconds"
+        } else if minutes == 1 {
+            return "1 minute"
+        } else {
+            return "\(Int(minutes)) minutes"
+        }
+    }
+}
+
+// MARK: - Modern Compact Timeline View
+
+struct CompactTimelineView: View {
+    @ObservedObject var timerManager: TimerManager
+
+    var body: some View {
+        // Safety check: Don't render if completed or no tasks
+        if timerManager.isCompleted || timerManager.tasks.isEmpty {
+            EmptyView()
+        } else {
+            VStack(spacing: 20) {
+                // Top row: Clock, task name, and task counter
+                HStack(alignment: .center, spacing: 16) {
+                    // Left: Clock (fixed width to prevent shifting)
+                    DigitalClockView(
+                        timeString: timerManager.formattedTime(timerManager.remainingSeconds),
+                        glowColor: Color(red: 0.2, green: 1.0, blue: 0.3)
+                    )
+                    .frame(width: 120, alignment: .leading)
+
+                    Spacer()
+
+                    // Center: Current task name
+                    if let currentTask = timerManager.currentTask {
+                        Text(currentTask.name)
+                            .font(.system(size: 24, weight: .medium))
+                            .foregroundColor(.primary)
+                            .multilineTextAlignment(.center)
+                            .lineLimit(1)
+                    }
+
+                    Spacer()
+
+                    // Right: Task counter and total time remaining
+                    VStack(alignment: .trailing, spacing: 3) {
+                        if !timerManager.tasks.isEmpty {
+                            let currentIndex = min(timerManager.currentTaskIndex + 1, timerManager.tasks.count)
+                            Text("Task \(currentIndex)/\(timerManager.tasks.count)")
+                                .font(.system(size: 13, weight: .medium, design: .monospaced))
+                                .foregroundColor(.secondary)
+
+                            Text("\(formattedTotalRemaining) left")
+                                .font(.system(size: 9, weight: .regular))
+                                .foregroundColor(.secondary.opacity(0.7))
+                        }
+                    }
+                    .frame(width: 120, alignment: .trailing)
+                }
+
+            // Timeline bar with controls on the right
+            HStack(alignment: .center, spacing: 16) {
+                // Wide timeline bar (storage-style)
+                VStack(spacing: 4) {
+                    if !timerManager.tasks.isEmpty {
+                        GeometryReader { geometry in
+                            ZStack(alignment: .leading) {
+                                // Task segments
+                                HStack(spacing: 1) {
+                                    ForEach(Array(timerManager.tasks.enumerated()), id: \.element.id) { index, task in
+                                        let width = segmentWidth(for: task, totalWidth: geometry.size.width)
+
+                                        ZStack {
+                                            Rectangle()
+                                                .fill(TaskColorHelper.gradient(for: task.colorIndex))
+                                                .opacity(index < timerManager.currentTaskIndex ? 0.5 : 1.0)
+
+                                            if width > 40 {
+                                                Text(task.name)
+                                                    .font(.system(size: 9, weight: .semibold))
+                                                    .foregroundColor(.white.opacity(0.9))
+                                                    .lineLimit(1)
+                                                    .padding(.horizontal, 6)
+                                            }
+                                        }
+                                        .frame(width: width)
+                                    }
+                                }
+                                .frame(height: 28)
+                                .clipShape(RoundedRectangle(cornerRadius: 6))
+
+                                // Gray overlay for completed portion (left of progress bar)
+                                let progress = calculateProgress()
+                                Rectangle()
+                                    .fill(
+                                        LinearGradient(
+                                            colors: [
+                                                Color.black.opacity(0.4),
+                                                Color.black.opacity(0.35)
+                                            ],
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
+                                    )
+                                    .frame(width: geometry.size.width * progress, height: 28)
+                                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                                    .blendMode(.multiply)
+
+                                // Progress indicator line
+                                Rectangle()
+                                    .fill(Color.white)
+                                    .frame(width: 3, height: 34)
+                                    .shadow(color: .black.opacity(0.5), radius: 3)
+                                    .offset(x: geometry.size.width * progress - 1.5, y: -3)
+                            }
+                        }
+                        .frame(height: 28)
+
+                        // Time scale ticks
+                        TimeScaleTicks(totalMinutes: totalDurationMinutes)
+                            .frame(height: 24)
+                    }
+                }
+
+                // Control buttons (right of timeline, centered to bar height)
+                HStack(spacing: 12) {
+                    Button(action: {
+                        if timerManager.isPaused {
+                            timerManager.resume()
+                        } else {
+                            timerManager.pause()
+                        }
+                    }) {
+                        Image(systemName: timerManager.isPaused ? "play.fill" : "pause.fill")
+                            .font(.system(size: 13, weight: .semibold))
+                            .frame(width: 38, height: 38)
+                    }
+                    .buttonStyle(ModernButtonStyle(isPrimary: true))
+                    .focusable(false)
+
+                    Button(action: { timerManager.skipToNext() }) {
+                        Image(systemName: "forward.fill")
+                            .font(.system(size: 13, weight: .semibold))
+                            .frame(width: 38, height: 38)
+                    }
+                    .buttonStyle(ModernButtonStyle())
+                    .focusable(false)
+
+                    Button(action: { timerManager.reset() }) {
+                        Image(systemName: "stop.fill")
+                            .font(.system(size: 13, weight: .semibold))
+                            .frame(width: 38, height: 38)
+                    }
+                    .buttonStyle(ModernButtonStyle(isDestructive: true))
+                    .focusable(false)
+                }
+                .offset(y: -12)
+            }
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 16)
+            .padding(.bottom, 8)
+        }
+    }
+
+    private func segmentWidth(for task: TimerTask, totalWidth: CGFloat) -> CGFloat {
+        let totalDuration = timerManager.tasks.reduce(0) { $0 + $1.durationMinutes }
+        guard totalDuration > 0 else { return 0 }
+
+        let taskCount = timerManager.tasks.count
+        let spacing: CGFloat = 1
+        let totalSpacing = spacing * CGFloat(max(taskCount - 1, 0))
+        let availableWidth = max(totalWidth - totalSpacing, 0)
+
+        guard availableWidth > 0 else { return 0 }
+
+        let proportion = task.durationMinutes / totalDuration
+        return max(availableWidth * proportion, 1)
+    }
+
+    private func calculateProgress() -> CGFloat {
+        guard !timerManager.tasks.isEmpty else { return 0 }
+
+        let totalDuration = timerManager.tasks.reduce(0) { $0 + $1.durationMinutes }
+        guard totalDuration > 0 else { return 0 }
+
+        // Ensure we have a valid current task index
+        guard timerManager.currentTaskIndex < timerManager.tasks.count else { return 1.0 }
+
+        var elapsedMinutes: Double = 0
+
+        for (index, task) in timerManager.tasks.enumerated() {
+            if index < timerManager.currentTaskIndex {
+                elapsedMinutes += task.durationMinutes
+            } else if index == timerManager.currentTaskIndex {
+                if let currentTask = timerManager.currentTask {
+                    let taskElapsed = currentTask.durationMinutes - (Double(timerManager.remainingSeconds) / 60.0)
+                    elapsedMinutes += taskElapsed
+                }
+                break
+            }
+        }
+
+        // If we've gone past all tasks, return 100%
+        if timerManager.currentTaskIndex >= timerManager.tasks.count {
+            return 1.0
+        }
+
+        return CGFloat(elapsedMinutes / totalDuration)
+    }
+
+    private var formattedTotalRemaining: String {
+        let totalSeconds = timerManager.totalRemainingTime
+        let minutes = Int(totalSeconds) / 60
+        let hours = minutes / 60
+        let remainingMinutes = minutes % 60
+
+        if hours > 0 {
+            return "\(hours)h \(remainingMinutes)m"
+        } else {
+            return "\(minutes)m"
+        }
+    }
+
+    private var totalDurationMinutes: Double {
+        guard !timerManager.tasks.isEmpty else { return 1.0 }
+        return timerManager.tasks.reduce(0) { $0 + $1.durationMinutes }
+    }
+}
+
+// MARK: - Time Scale Ticks
+
+struct TimeScaleTicks: View {
+    let totalMinutes: Double
+
+    var body: some View {
+        GeometryReader { geometry in
+            // Safety check for invalid totalMinutes
+            guard totalMinutes > 0 else {
+                return AnyView(EmptyView())
+            }
+
+            return AnyView(
+            ZStack(alignment: .leading) {
+                // Calculate ticks
+                let tickCount = calculateTickCount(totalMinutes: totalMinutes)
+                let interval = totalMinutes / Double(tickCount)
+
+                // Start tick (0) - align text left edge at x=0
+                VStack(spacing: 2) {
+                    Rectangle()
+                        .fill(Color.secondary.opacity(0.5))
+                        .frame(width: 1, height: 6)
+                    Text("0")
+                        .font(.system(size: 9, design: .monospaced))
+                        .foregroundColor(.secondary)
+                        .frame(width: 30, alignment: .leading)
+                }
+                .position(x: 15, y: 12)
+
+                // Intermediate ticks - center text on tick position
+                if tickCount > 1 {
+                    ForEach(1..<tickCount, id: \.self) { index in
+                        let minutes = interval * Double(index)
+                        let position = geometry.size.width * (minutes / totalMinutes)
+                        VStack(spacing: 2) {
+                            Rectangle()
+                                .fill(Color.secondary.opacity(0.5))
+                                .frame(width: 1, height: 6)
+                            Text(formatMinutes(minutes))
+                                .font(.system(size: 9, design: .monospaced))
+                                .foregroundColor(.secondary)
+                                .frame(width: 30)
+                        }
+                        .position(x: position, y: 12)
+                    }
+                }
+
+                // End tick (total) - align text right edge at x=width
+                VStack(spacing: 2) {
+                    Rectangle()
+                        .fill(Color.secondary.opacity(0.5))
+                        .frame(width: 1, height: 6)
+                    Text(formatMinutes(totalMinutes))
+                        .font(.system(size: 9, design: .monospaced))
+                        .foregroundColor(.secondary)
+                        .frame(width: 30, alignment: .trailing)
+                }
+                .position(x: geometry.size.width - 15, y: 12)
+            }
+            )
+        }
+    }
+
+    private func calculateTickCount(totalMinutes: Double) -> Int {
+        // For sub-minute durations
+        if totalMinutes < 1 {
+            let totalSeconds = Int(totalMinutes * 60)
+            if totalSeconds <= 10 {
+                return 2
+            } else if totalSeconds <= 30 {
+                return 3
+            } else {
+                return 4
+            }
+        }
+
+        let rounded = Int(round(totalMinutes))
+
+        // Ensure minimum of 2 ticks for valid range
+        if rounded <= 1 {
+            return 2
+        } else if rounded <= 5 {
+            return rounded // 2, 3, 4, 5
+        } else if rounded <= 10 {
+            return 5 // 0, 2, 4, 6, 8, 10
+        } else if rounded <= 30 {
+            return 4 // 0, 10, 20, 30
+        } else if rounded <= 60 {
+            return 5 // 0, 15, 30, 45, 60
+        } else if rounded <= 120 {
+            return 5 // 0, 30, 60, 90, 120
+        } else {
+            return 5 // 0, 25%, 50%, 75%, 100%
+        }
+    }
+
+    private func formatMinutes(_ minutes: Double) -> String {
+        // For sub-minute durations, show seconds
+        if minutes < 1 {
+            let seconds = Int(round(minutes * 60))
+            return "\(seconds)s"
+        }
+
+        let rounded = Int(round(minutes))
+        if rounded >= 60 {
+            let hours = rounded / 60
+            let mins = rounded % 60
+            if mins == 0 {
+                return "\(hours)h"
+            } else {
+                return "\(hours)h\(mins)"
+            }
+        } else {
+            return "\(rounded)m"
+        }
+    }
+}
+
+// MARK: - Modern Button Style
+
+struct ModernButtonStyle: ButtonStyle {
+    var isDestructive: Bool = false
+    var isPrimary: Bool = false
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(backgroundColor(isPressed: configuration.isPressed))
+                    .shadow(color: .black.opacity(0.1), radius: 3, x: 0, y: 1)
+            )
+            .foregroundColor(foregroundColor)
+            .scaleEffect(configuration.isPressed ? 0.92 : 1.0)
+            .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
+    }
+
+    private func backgroundColor(isPressed: Bool) -> Color {
+        if isPrimary {
+            return isPressed ? Color.gray.opacity(0.35) : Color.gray.opacity(0.25)
+        } else if isDestructive {
+            return isPressed ? Color.gray.opacity(0.35) : Color.gray.opacity(0.25)
+        } else {
+            return isPressed ? Color.gray.opacity(0.25) : Color.gray.opacity(0.15)
+        }
+    }
+
+    private var foregroundColor: Color {
+        if isPrimary {
+            return .primary
+        } else if isDestructive {
+            return .secondary
+        } else {
+            return .primary
+        }
+    }
+}
+
+#Preview {
+    let manager = TimerManager()
+    manager.addTask(TimerTask(name: "Review Design Mockups", durationMinutes: 25))
+    manager.addTask(TimerTask(name: "Write Code", durationMinutes: 45))
+    manager.start()
+    return FocusedTaskView(timerManager: manager)
+}
