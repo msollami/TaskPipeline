@@ -52,6 +52,65 @@ struct TimelineEditorView: View {
                     .font(.title)
                     .fontWeight(.bold)
 
+                // Mode selector
+                Picker("Pipeline Mode", selection: $timerManager.pipelineMode) {
+                    Text("Fixed Duration").tag(PipelineMode.fixedDuration)
+                    Text("Proportional").tag(PipelineMode.proportional)
+                }
+                .pickerStyle(.segmented)
+                .frame(width: 300)
+                .onChange(of: timerManager.pipelineMode) { newMode in
+                    timerManager.setPipelineMode(newMode)
+                }
+
+                // Total time control for proportional mode
+                if timerManager.pipelineMode == .proportional {
+                    HStack(spacing: 8) {
+                        Text("Total Time:")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+
+                        if isEditingTotalTime {
+                            TextField("", text: $totalMinutesText)
+                                .textFieldStyle(.plain)
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                                .frame(width: 50)
+                                .multilineTextAlignment(.trailing)
+                                .focused($isTotalTimeFocused)
+                                .onSubmit {
+                                    applyTargetTimeChange()
+                                }
+
+                            Text("min")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+
+                            Button("✓") {
+                                applyTargetTimeChange()
+                            }
+                            .buttonStyle(.plain)
+                            .foregroundColor(.green)
+                            .font(.caption)
+                        } else {
+                            Button(action: {
+                                startEditingTargetTime()
+                            }) {
+                                HStack(spacing: 4) {
+                                    Text(formatTotalMinutes(timerManager.targetTotalMinutes))
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+
+                                    Image(systemName: "pencil.circle")
+                                        .font(.caption)
+                                        .foregroundColor(.accentColor)
+                                }
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+
                 if !timerManager.tasks.isEmpty {
                     HStack(spacing: 8) {
                         Text("\(timerManager.tasks.count) tasks •")
@@ -205,11 +264,38 @@ struct TimelineEditorView: View {
         }
     }
 
+    private func formatTotalMinutes(_ minutes: Double) -> String {
+        let hours = Int(minutes) / 60
+        let mins = Int(minutes) % 60
+
+        if hours > 0 {
+            return "\(hours)h \(mins)m"
+        } else {
+            return "\(Int(minutes))m"
+        }
+    }
+
     private func startEditingTotalTime() {
         let totalMinutes = timerManager.tasks.reduce(0) { $0 + $1.durationMinutes }
         totalMinutesText = "\(Int(totalMinutes))"
         isEditingTotalTime = true
         isTotalTimeFocused = true
+    }
+
+    private func startEditingTargetTime() {
+        totalMinutesText = "\(Int(timerManager.targetTotalMinutes))"
+        isEditingTotalTime = true
+        isTotalTimeFocused = true
+    }
+
+    private func applyTargetTimeChange() {
+        guard let newTotalMinutes = Double(totalMinutesText), newTotalMinutes > 0 else {
+            isEditingTotalTime = false
+            return
+        }
+
+        timerManager.setTargetTotalMinutes(newTotalMinutes)
+        isEditingTotalTime = false
     }
 
     private func applyTotalTimeChange() {
@@ -904,45 +990,78 @@ struct AddTaskRowView: View {
     @State private var taskName: String = ""
     @State private var durationText: String = "1"
     @State private var sliderValue: Double = 1.0
+    @State private var proportionValue: Double = 1.0 // For proportional mode
+    @State private var proportionText: String = "1"
     @AppStorage("maxTaskDuration") private var maxTaskDuration: Double = 120
     @State private var previousTaskCount: Int = 0
     private let minDuration: Double = 0.166 // 10 seconds
+    private let minProportion: Double = 0.1
+    private let maxProportion: Double = 10.0
 
     var body: some View {
         VStack(spacing: 8) {
-            // Top row: Task name, duration, and add button
+            // Top row: Task name, duration/proportion, and add button
             HStack(spacing: 12) {
                 // Task name input with cursor
                 ClickableTextField(text: $taskName, placeholder: "Add task (optional)...", onSubmit: addTask)
                     .font(.system(size: 14, weight: .medium))
 
-                // Duration controls
-                HStack(spacing: 6) {
-                    TextField("", text: $durationText)
-                        .textFieldStyle(.plain)
-                        .font(.system(size: 14, weight: .semibold, design: .monospaced))
-                        .foregroundColor(durationColor(for: sliderValue))
-                        .frame(width: 35)
-                        .multilineTextAlignment(.trailing)
-                        .onChange(of: durationText) { newValue in
-                            let filtered = newValue.filter { $0.isNumber || $0 == "." }
-                            if filtered != newValue {
-                                durationText = filtered
+                // Duration or Proportion controls based on mode
+                if timerManager.pipelineMode == .proportional {
+                    HStack(spacing: 6) {
+                        TextField("", text: $proportionText)
+                            .textFieldStyle(.plain)
+                            .font(.system(size: 14, weight: .semibold, design: .monospaced))
+                            .foregroundColor(.accentColor)
+                            .frame(width: 35)
+                            .multilineTextAlignment(.trailing)
+                            .onChange(of: proportionText) { newValue in
+                                let filtered = newValue.filter { $0.isNumber || $0 == "." }
+                                if filtered != newValue {
+                                    proportionText = filtered
+                                }
+
+                                if let value = Double(filtered), value >= minProportion && value <= maxProportion {
+                                    proportionValue = value
+                                }
+                            }
+                            .onSubmit {
+                                addTask()
                             }
 
-                            if let value = Double(filtered), value >= minDuration && value <= maxTaskDuration {
-                                sliderValue = value
-                            }
-                        }
-                        .onSubmit {
-                            addTask()
-                        }
+                        Text("parts")
+                            .font(.system(size: 11, weight: .regular))
+                            .foregroundColor(.secondary)
+                    }
+                    .frame(width: 80)
+                } else {
+                    HStack(spacing: 6) {
+                        TextField("", text: $durationText)
+                            .textFieldStyle(.plain)
+                            .font(.system(size: 14, weight: .semibold, design: .monospaced))
+                            .foregroundColor(durationColor(for: sliderValue))
+                            .frame(width: 35)
+                            .multilineTextAlignment(.trailing)
+                            .onChange(of: durationText) { newValue in
+                                let filtered = newValue.filter { $0.isNumber || $0 == "." }
+                                if filtered != newValue {
+                                    durationText = filtered
+                                }
 
-                    Text("min")
-                        .font(.system(size: 11, weight: .regular))
-                        .foregroundColor(.secondary)
+                                if let value = Double(filtered), value >= minDuration && value <= maxTaskDuration {
+                                    sliderValue = value
+                                }
+                            }
+                            .onSubmit {
+                                addTask()
+                            }
+
+                        Text("min")
+                            .font(.system(size: 11, weight: .regular))
+                            .foregroundColor(.secondary)
+                    }
+                    .frame(width: 75)
                 }
-                .frame(width: 75)
 
                 // Add button - always visible
                 Button(action: addTask) {
@@ -968,45 +1087,79 @@ struct AddTaskRowView: View {
                         .fill(Color.gray.opacity(0.15))
                         .frame(height: 8)
 
-                    // Filled portion with color
-                    Capsule()
-                        .fill(durationColor(for: sliderValue))
-                        .frame(width: max(8, geometry.size.width * CGFloat((sliderValue - minDuration) / (maxTaskDuration - minDuration))), height: 8)
+                    if timerManager.pipelineMode == .proportional {
+                        // Proportion slider
+                        Capsule()
+                            .fill(Color.accentColor)
+                            .frame(width: max(8, geometry.size.width * CGFloat((proportionValue - minProportion) / (maxProportion - minProportion))), height: 8)
 
-                    // Draggable thumb
-                    Circle()
-                        .fill(durationColor(for: sliderValue))
-                        .frame(width: 16, height: 16)
-                        .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 1)
-                        .overlay(
-                            Circle()
-                                .stroke(Color.white.opacity(0.5), lineWidth: 1.5)
-                        )
-                        .offset(x: max(0, min(geometry.size.width - 16, geometry.size.width * CGFloat((sliderValue - minDuration) / (maxTaskDuration - minDuration)) - 8)))
-                        .gesture(
-                            DragGesture(minimumDistance: 0)
-                                .onChanged { value in
-                                    let proportion = value.location.x / geometry.size.width
-                                    let newValue = max(minDuration, min(maxTaskDuration, minDuration + (proportion * (maxTaskDuration - minDuration))))
-                                    sliderValue = newValue
-                                    if newValue < 1 {
-                                        durationText = String(format: "%.2f", newValue)
-                                    } else {
-                                        durationText = "\(Int(round(newValue)))"
+                        Circle()
+                            .fill(Color.accentColor)
+                            .frame(width: 16, height: 16)
+                            .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 1)
+                            .overlay(
+                                Circle()
+                                    .stroke(Color.white.opacity(0.5), lineWidth: 1.5)
+                            )
+                            .offset(x: max(0, min(geometry.size.width - 16, geometry.size.width * CGFloat((proportionValue - minProportion) / (maxProportion - minProportion)) - 8)))
+                            .gesture(
+                                DragGesture(minimumDistance: 0)
+                                    .onChanged { value in
+                                        let proportion = value.location.x / geometry.size.width
+                                        let newValue = max(minProportion, min(maxProportion, minProportion + (proportion * (maxProportion - minProportion))))
+                                        proportionValue = newValue
+                                        proportionText = String(format: "%.1f", newValue)
                                     }
-                                }
-                        )
+                            )
+                    } else {
+                        // Duration slider
+                        Capsule()
+                            .fill(durationColor(for: sliderValue))
+                            .frame(width: max(8, geometry.size.width * CGFloat((sliderValue - minDuration) / (maxTaskDuration - minDuration))), height: 8)
+
+                        Circle()
+                            .fill(durationColor(for: sliderValue))
+                            .frame(width: 16, height: 16)
+                            .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 1)
+                            .overlay(
+                                Circle()
+                                    .stroke(Color.white.opacity(0.5), lineWidth: 1.5)
+                            )
+                            .offset(x: max(0, min(geometry.size.width - 16, geometry.size.width * CGFloat((sliderValue - minDuration) / (maxTaskDuration - minDuration)) - 8)))
+                            .gesture(
+                                DragGesture(minimumDistance: 0)
+                                    .onChanged { value in
+                                        let proportion = value.location.x / geometry.size.width
+                                        let newValue = max(minDuration, min(maxTaskDuration, minDuration + (proportion * (maxTaskDuration - minDuration))))
+                                        sliderValue = newValue
+                                        if newValue < 1 {
+                                            durationText = String(format: "%.2f", newValue)
+                                        } else {
+                                            durationText = "\(Int(round(newValue)))"
+                                        }
+                                    }
+                            )
+                    }
                 }
                 .contentShape(Rectangle())
                 .onTapGesture { location in
                     let proportion = location.x / geometry.size.width
-                    let newValue = max(minDuration, min(maxTaskDuration, minDuration + (proportion * (maxTaskDuration - minDuration))))
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        sliderValue = newValue
-                        if newValue < 1 {
-                            durationText = String(format: "%.2f", newValue)
-                        } else {
-                            durationText = "\(Int(round(newValue)))"
+
+                    if timerManager.pipelineMode == .proportional {
+                        let newValue = max(minProportion, min(maxProportion, minProportion + (proportion * (maxProportion - minProportion))))
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            proportionValue = newValue
+                            proportionText = String(format: "%.1f", newValue)
+                        }
+                    } else {
+                        let newValue = max(minDuration, min(maxTaskDuration, minDuration + (proportion * (maxTaskDuration - minDuration))))
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            sliderValue = newValue
+                            if newValue < 1 {
+                                durationText = String(format: "%.2f", newValue)
+                            } else {
+                                durationText = "\(Int(round(newValue)))"
+                            }
                         }
                     }
                 }
@@ -1060,12 +1213,27 @@ struct AddTaskRowView: View {
         // Allow empty task names - use "Task" as default
         let finalName = taskName.trimmingCharacters(in: .whitespaces).isEmpty ? "Task" : taskName
 
-        let task = TimerTask(name: finalName, durationMinutes: sliderValue)
+        let task: TimerTask
+        if timerManager.pipelineMode == .proportional {
+            // In proportional mode, create task with proportion
+            // Initial duration will be calculated by recalculateTaskDurations
+            task = TimerTask(
+                name: finalName,
+                durationMinutes: 1.0, // Placeholder, will be recalculated
+                proportion: proportionValue
+            )
+        } else {
+            // In fixed duration mode, use the slider value
+            task = TimerTask(name: finalName, durationMinutes: sliderValue)
+        }
+
         timerManager.addTask(task)
 
         taskName = ""
         durationText = "1"
         sliderValue = 1.0
+        proportionText = "1"
+        proportionValue = 1.0
     }
 }
 

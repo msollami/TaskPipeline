@@ -10,6 +10,11 @@ import AppKit
 import UserNotifications
 import AVFoundation
 
+enum PipelineMode: String, Codable {
+    case fixedDuration
+    case proportional
+}
+
 class TimerManager: ObservableObject {
     @Published var tasks: [TimerTask] = []
     @Published var currentTaskIndex: Int = 0
@@ -20,6 +25,8 @@ class TimerManager: ObservableObject {
     @Published var showTaskTransitionFlash: Bool = false
     @Published var pauseCount: Int = 0
     @Published var totalPausedSeconds: TimeInterval = 0
+    @Published var pipelineMode: PipelineMode = .fixedDuration
+    @Published var targetTotalMinutes: Double = 60 // Default 1 hour for proportional mode
 
     private var timer: Timer?
     private var pauseStartTime: Date?
@@ -54,11 +61,65 @@ class TimerManager: ObservableObject {
         taskWithColor.colorIndex = nextColorIndex
         nextColorIndex = (nextColorIndex + 1) % 8  // Cycle through 8 colors
         tasks.append(taskWithColor)
+
+        // In proportional mode, recalculate all task durations
+        if pipelineMode == .proportional {
+            recalculateTaskDurations()
+        }
+    }
+
+    // Recalculate task durations based on proportions and target total time
+    func recalculateTaskDurations() {
+        guard pipelineMode == .proportional else { return }
+
+        let totalProportion = tasks.reduce(0.0) { $0 + ($1.proportion ?? 0.0) }
+        guard totalProportion > 0 else { return }
+
+        for (index, task) in tasks.enumerated() {
+            if let proportion = task.proportion {
+                let normalizedProportion = proportion / totalProportion
+                tasks[index].durationMinutes = targetTotalMinutes * normalizedProportion
+            }
+        }
+    }
+
+    // Switch between modes
+    func setPipelineMode(_ mode: PipelineMode) {
+        pipelineMode = mode
+
+        if mode == .proportional {
+            // When switching to proportional, calculate proportions from current durations
+            let totalDuration = tasks.reduce(0.0) { $0 + $1.durationMinutes }
+            if totalDuration > 0 {
+                targetTotalMinutes = totalDuration
+                for (index, task) in tasks.enumerated() {
+                    tasks[index].proportion = task.durationMinutes / totalDuration
+                }
+            }
+        } else {
+            // When switching to fixed, clear proportions
+            for index in 0..<tasks.count {
+                tasks[index].proportion = nil
+            }
+        }
+    }
+
+    // Update target total time in proportional mode
+    func setTargetTotalMinutes(_ minutes: Double) {
+        targetTotalMinutes = minutes
+        if pipelineMode == .proportional {
+            recalculateTaskDurations()
+        }
     }
 
     func removeTask(at index: Int) {
         guard index < tasks.count else { return }
         tasks.remove(at: index)
+
+        // In proportional mode, recalculate all task durations
+        if pipelineMode == .proportional {
+            recalculateTaskDurations()
+        }
     }
 
     func deleteCurrentTaskAndContinue() {

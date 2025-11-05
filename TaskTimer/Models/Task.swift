@@ -13,13 +13,15 @@ struct TimerTask: Identifiable, Codable, Equatable {
     var durationMinutes: Double
     var isCompleted: Bool
     var colorIndex: Int
+    var proportion: Double? // For proportional mode (0.0 to 1.0)
 
-    init(id: UUID = UUID(), name: String, durationMinutes: Double, isCompleted: Bool = false, colorIndex: Int = 0) {
+    init(id: UUID = UUID(), name: String, durationMinutes: Double, isCompleted: Bool = false, colorIndex: Int = 0, proportion: Double? = nil) {
         self.id = id
         self.name = name
         self.durationMinutes = durationMinutes
         self.isCompleted = isCompleted
         self.colorIndex = colorIndex
+        self.proportion = proportion
     }
 
     var durationSeconds: TimeInterval {
