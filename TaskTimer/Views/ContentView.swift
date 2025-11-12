@@ -440,6 +440,7 @@ struct InteractiveTimelineBar: View {
                 }
             }
             .frame(height: 60)
+            .clipped() // Ensure child elements don't escape bounds
             .onHover { hovering in
                 isHoveringTimeline = hovering
             }
@@ -1790,6 +1791,16 @@ struct ClickableTextField: NSViewRepresentable {
 }
 
 class ForceFocusTextField: NSTextField {
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        self.focusRingType = .none
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        self.focusRingType = .none
+    }
+
     override func mouseDown(with event: NSEvent) {
         // Force become first responder on ANY click
         window?.makeFirstResponder(self)
@@ -1802,6 +1813,11 @@ class ForceFocusTextField: NSTextField {
 
     override func becomeFirstResponder() -> Bool {
         return true
+    }
+
+    override var focusRingType: NSFocusRingType {
+        get { return .none }
+        set { }
     }
 }
 
