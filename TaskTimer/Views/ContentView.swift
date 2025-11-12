@@ -332,6 +332,8 @@ struct InteractiveTimelineBar: View {
     @State private var draggedTask: TimerTask?
     @State private var currentDropTarget: UUID?
     @State private var isDraggingDivider: Bool = false
+    @State private var isHoveringTimeline: Bool = false
+    @State private var activeDividerIndex: Int? = nil
 
     var body: some View {
         VStack(spacing: 12) {
@@ -410,22 +412,34 @@ struct InteractiveTimelineBar: View {
                         }
                     }
 
-                    // Resize dividers for proportional mode
-                    if timerManager.pipelineMode == .proportional && timerManager.tasks.count > 1 {
+                    // Resize dividers for proportional mode - only show on hover
+                    if timerManager.pipelineMode == .proportional && timerManager.tasks.count > 1 && (isHoveringTimeline || isDraggingDivider) {
                         ForEach(0..<timerManager.tasks.count - 1, id: \.self) { index in
                             let xPosition = widths.prefix(index + 1).reduce(0, +) + CGFloat(index + 1) * 3 - 1.5
                             ResizeDivider(
+                                isActive: activeDividerIndex == index,
+                                onDragStart: {
+                                    isDraggingDivider = true
+                                    activeDividerIndex = index
+                                },
                                 onDrag: { delta in
                                     handleDividerDrag(at: index, delta: delta, totalWidth: geometry.size.width)
+                                },
+                                onDragEnd: {
+                                    isDraggingDivider = false
+                                    activeDividerIndex = nil
                                 }
                             )
-                            .frame(width: 8, height: 60)
-                            .offset(x: xPosition, y: 0)
+                            .frame(width: 12, height: 60)
+                            .offset(x: xPosition - 2, y: 0)
                         }
                     }
                 }
             }
             .frame(height: 60)
+            .onHover { hovering in
+                isHoveringTimeline = hovering
+            }
             .cornerRadius(8)
             .onChange(of: draggedTask) { newValue in
                 // When drag ends (draggedTask becomes nil), clear selection and reset state
@@ -600,33 +614,63 @@ struct InteractiveTimelineBar: View {
 // MARK: - Resize Divider
 
 struct ResizeDivider: View {
+    let isActive: Bool
+    let onDragStart: () -> Void
     let onDrag: (CGFloat) -> Void
+    let onDragEnd: () -> Void
+
     @State private var dragOffset: CGFloat = 0
+    @State private var accumulatedDelta: CGFloat = 0
+    @State private var updateTimer: Timer?
+    @State private var isHovering: Bool = false
 
     var body: some View {
         ZStack {
             // Invisible wider hit area
             Rectangle()
                 .fill(Color.clear)
-                .frame(width: 8, height: 60)
                 .contentShape(Rectangle())
 
-            // Visible handle
-            Capsule()
-                .fill(Color.white.opacity(0.5))
-                .frame(width: 3, height: 30)
-                .shadow(color: .black.opacity(0.3), radius: 2, x: 0, y: 0)
+            // Visible handle - only show when hovering or dragging
+            if isHovering || isActive {
+                Capsule()
+                    .fill(Color.white.opacity(isActive ? 0.9 : 0.6))
+                    .frame(width: 4, height: 40)
+                    .shadow(color: .black.opacity(0.4), radius: 3, x: 0, y: 0)
+                    .animation(.easeInOut(duration: 0.15), value: isActive)
+                    .animation(.easeInOut(duration: 0.15), value: isHovering)
+            }
         }
         .cursor(NSCursor.resizeLeftRight)
+        .onHover { hovering in
+            isHovering = hovering
+        }
         .gesture(
-            DragGesture()
+            DragGesture(minimumDistance: 1)
                 .onChanged { value in
+                    if dragOffset == 0 {
+                        onDragStart()
+                    }
+
                     let delta = value.translation.width - dragOffset
                     dragOffset = value.translation.width
-                    onDrag(delta)
+                    accumulatedDelta += delta
+
+                    // Throttle updates - only update every 5 pixels of accumulated drag
+                    if abs(accumulatedDelta) >= 5 {
+                        onDrag(accumulatedDelta)
+                        accumulatedDelta = 0
+                    }
                 }
                 .onEnded { _ in
+                    // Apply any remaining accumulated delta
+                    if accumulatedDelta != 0 {
+                        onDrag(accumulatedDelta)
+                    }
+
                     dragOffset = 0
+                    accumulatedDelta = 0
+                    onDragEnd()
                 }
         )
     }
