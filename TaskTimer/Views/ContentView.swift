@@ -415,8 +415,8 @@ struct InteractiveTimelineBar: View {
                         }
                     }
 
-                    // Resize dividers for proportional mode - only show on hover
-                    if timerManager.pipelineMode == .proportional && timerManager.tasks.count > 1 && (isHoveringTimeline || isDraggingDivider) {
+                    // Resize dividers for proportional mode - only show on hover (not when dragging tasks)
+                    if timerManager.pipelineMode == .proportional && timerManager.tasks.count > 1 && (isHoveringTimeline || isDraggingDivider) && draggedTask == nil {
                         ForEach(0..<timerManager.tasks.count - 1, id: \.self) { index in
                             let xPosition = widths.prefix(index + 1).reduce(0, +) + CGFloat(index + 1) * 3 - 1.5
                             ResizeDivider(
@@ -446,6 +446,11 @@ struct InteractiveTimelineBar: View {
             }
             .cornerRadius(8)
             .onChange(of: draggedTask) { newValue in
+                if newValue != nil {
+                    // When drag starts, hide dividers by clearing hover state
+                    isHoveringTimeline = false
+                }
+
                 // When drag ends (draggedTask becomes nil), clear selection and reset state
                 if newValue == nil {
                     self.selectedTask = nil
