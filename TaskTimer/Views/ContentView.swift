@@ -802,12 +802,14 @@ struct TimelineSegment: View {
             }
             .frame(width: width, height: 60)
             .shadow(color: Color.black.opacity(0.2), radius: 2, x: 0, y: 1)
+            .contentShape(Rectangle()) // Define hit area without button behavior
             .onTapGesture(count: 2) {
                 onDoubleTap()
             }
             .onTapGesture(count: 1) {
                 onTap()
             }
+            .focusable(false) // Disable focus ring
 
             // Expanded editor as overlay - doesn't affect layout
             if isEditing {
@@ -897,6 +899,7 @@ struct TimelineSegment: View {
             }
         }
         .frame(width: width, height: 60)
+        .focusable(false) // Prevent outer container from getting focus
         .onAppear {
             editName = task.name
             sliderValue = task.durationMinutes
