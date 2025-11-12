@@ -331,6 +331,7 @@ struct InteractiveTimelineBar: View {
     @State private var editingTask: TimerTask?
     @State private var draggedTask: TimerTask?
     @State private var currentDropTarget: UUID?
+    @State private var isDraggingDivider: Bool = false
 
     var body: some View {
         VStack(spacing: 12) {
@@ -338,62 +339,89 @@ struct InteractiveTimelineBar: View {
             GeometryReader { geometry in
                 let widths = calculateSegmentWidths(totalWidth: geometry.size.width)
 
-                HStack(spacing: 3) {
-                    ForEach(timerManager.tasks) { task in
-                        let index = timerManager.tasks.firstIndex(where: { $0.id == task.id }) ?? 0
-                        let width = index < widths.count ? widths[index] : 60
+                ZStack(alignment: .leading) {
+                    // Segments
+                    HStack(spacing: 3) {
+                        ForEach(timerManager.tasks) { task in
+                            let index = timerManager.tasks.firstIndex(where: { $0.id == task.id }) ?? 0
+                            let width = index < widths.count ? widths[index] : 60
 
-                        TimelineSegment(
-                            task: task,
-                            index: index,
-                            width: width,
-                            isSelected: selectedTask?.id == task.id,
-                            isEditing: editingTask?.id == task.id,
-                            onTap: {
-                                if selectedTask?.id == task.id {
-                                    selectedTask = nil
-                                    editingTask = nil
-                                } else {
+                            TimelineSegment(
+                                task: task,
+                                index: index,
+                                width: width,
+                                isSelected: selectedTask?.id == task.id,
+                                isEditing: editingTask?.id == task.id,
+                                onTap: {
+                                    if selectedTask?.id == task.id {
+                                        selectedTask = nil
+                                        editingTask = nil
+                                    } else {
+                                        selectedTask = task
+                                        editingTask = nil
+                                    }
+                                },
+                                onDoubleTap: {
                                     selectedTask = task
-                                    editingTask = nil
+                                    editingTask = task
+                                },
+                                timerManager: timerManager,
+                                onNameChange: { newName in
+                                    if let idx = timerManager.tasks.firstIndex(where: { $0.id == task.id }) {
+                                        timerManager.updateTask(at: idx, name: newName, durationMinutes: task.durationMinutes)
+                                    }
+                                },
+                                onDurationChange: { newDuration in
+                                    if let idx = timerManager.tasks.firstIndex(where: { $0.id == task.id }) {
+                                        if timerManager.pipelineMode == .proportional {
+                                            // Update proportion based on new duration
+                                            let totalDuration = timerManager.tasks.reduce(0.0) { $0 + $1.durationMinutes }
+                                            let oldDuration = task.durationMinutes
+                                            let newTotal = totalDuration - oldDuration + newDuration
+                                            timerManager.updateTask(at: idx, name: task.name, durationMinutes: newDuration)
+                                            timerManager.tasks[idx].proportion = newDuration / newTotal
+                                            timerManager.setTargetTotalMinutes(newTotal)
+                                        } else {
+                                            timerManager.updateTask(at: idx, name: task.name, durationMinutes: newDuration)
+                                        }
+                                    }
+                                },
+                                onDelete: {
+                                    if let idx = timerManager.tasks.firstIndex(where: { $0.id == task.id }) {
+                                        timerManager.removeTask(at: idx)
+                                        editingTask = nil
+                                        selectedTask = nil
+                                    }
                                 }
-                            },
-                            onDoubleTap: {
-                                selectedTask = task
-                                editingTask = task
-                            },
-                            timerManager: timerManager,
-                            onNameChange: { newName in
-                                if let idx = timerManager.tasks.firstIndex(where: { $0.id == task.id }) {
-                                    timerManager.updateTask(at: idx, name: newName, durationMinutes: task.durationMinutes)
-                                }
-                            },
-                            onDurationChange: { newDuration in
-                                if let idx = timerManager.tasks.firstIndex(where: { $0.id == task.id }) {
-                                    timerManager.updateTask(at: idx, name: task.name, durationMinutes: newDuration)
-                                }
-                            },
-                            onDelete: {
-                                if let idx = timerManager.tasks.firstIndex(where: { $0.id == task.id }) {
-                                    timerManager.removeTask(at: idx)
-                                    editingTask = nil
-                                    selectedTask = nil
-                                }
+                            )
+                            .opacity(draggedTask?.id == task.id ? 0.3 : 1.0)
+                            .onDrag {
+                                self.draggedTask = task
+                                return NSItemProvider(object: task.id.uuidString as NSString)
                             }
-                        )
-                        .opacity(draggedTask?.id == task.id ? 0.3 : 1.0)
-                        .onDrag {
-                            self.draggedTask = task
-                            return NSItemProvider(object: task.id.uuidString as NSString)
+                            .onDrop(of: [.plainText], delegate: TaskDropDelegate(
+                                task: task,
+                                tasks: $timerManager.tasks,
+                                draggedTask: $draggedTask,
+                                currentDropTarget: $currentDropTarget,
+                                selectedTask: $selectedTask,
+                                editingTask: $editingTask
+                            ))
                         }
-                        .onDrop(of: [.plainText], delegate: TaskDropDelegate(
-                            task: task,
-                            tasks: $timerManager.tasks,
-                            draggedTask: $draggedTask,
-                            currentDropTarget: $currentDropTarget,
-                            selectedTask: $selectedTask,
-                            editingTask: $editingTask
-                        ))
+                    }
+
+                    // Resize dividers for proportional mode
+                    if timerManager.pipelineMode == .proportional && timerManager.tasks.count > 1 {
+                        ForEach(0..<timerManager.tasks.count - 1, id: \.self) { index in
+                            let xPosition = widths.prefix(index + 1).reduce(0, +) + CGFloat(index + 1) * 3 - 1.5
+                            ResizeDivider(
+                                onDrag: { delta in
+                                    handleDividerDrag(at: index, delta: delta, totalWidth: geometry.size.width)
+                                }
+                            )
+                            .frame(width: 8, height: 60)
+                            .offset(x: xPosition, y: 0)
+                        }
                     }
                 }
             }
@@ -533,6 +561,75 @@ struct InteractiveTimelineBar: View {
 
         return widths
     }
+
+    private func handleDividerDrag(at dividerIndex: Int, delta: CGFloat, totalWidth: CGFloat) {
+        guard timerManager.pipelineMode == .proportional,
+              dividerIndex < timerManager.tasks.count - 1,
+              timerManager.tasks[dividerIndex].proportion != nil,
+              timerManager.tasks[dividerIndex + 1].proportion != nil else {
+            return
+        }
+
+        let leftTask = timerManager.tasks[dividerIndex]
+        let rightTask = timerManager.tasks[dividerIndex + 1]
+
+        guard let leftProportion = leftTask.proportion,
+              let rightProportion = rightTask.proportion else {
+            return
+        }
+
+        // Calculate the change in proportion based on pixel delta
+        let totalProportion = timerManager.tasks.reduce(0.0) { $0 + ($1.proportion ?? 0.0) }
+        let deltaInProportion = (delta / totalWidth) * totalProportion
+
+        // Compute new proportions
+        let newLeftProportion = max(0.1, leftProportion + deltaInProportion)
+        let newRightProportion = max(0.1, rightProportion - deltaInProportion)
+
+        // Ensure we don't make either task too small
+        if newLeftProportion >= 0.1 && newRightProportion >= 0.1 {
+            timerManager.tasks[dividerIndex].proportion = newLeftProportion
+            timerManager.tasks[dividerIndex + 1].proportion = newRightProportion
+
+            // Recalculate durations
+            timerManager.recalculateTaskDurations()
+        }
+    }
+}
+
+// MARK: - Resize Divider
+
+struct ResizeDivider: View {
+    let onDrag: (CGFloat) -> Void
+    @State private var dragOffset: CGFloat = 0
+
+    var body: some View {
+        ZStack {
+            // Invisible wider hit area
+            Rectangle()
+                .fill(Color.clear)
+                .frame(width: 8, height: 60)
+                .contentShape(Rectangle())
+
+            // Visible handle
+            Capsule()
+                .fill(Color.white.opacity(0.5))
+                .frame(width: 3, height: 30)
+                .shadow(color: .black.opacity(0.3), radius: 2, x: 0, y: 0)
+        }
+        .cursor(NSCursor.resizeLeftRight)
+        .gesture(
+            DragGesture()
+                .onChanged { value in
+                    let delta = value.translation.width - dragOffset
+                    dragOffset = value.translation.width
+                    onDrag(delta)
+                }
+                .onEnded { _ in
+                    dragOffset = 0
+                }
+        )
+    }
 }
 
 // MARK: - Task Drop Delegate
@@ -603,6 +700,7 @@ struct TimelineSegment: View {
 
     @State private var editName: String = ""
     @State private var sliderValue: Double = 0
+    @State private var durationText: String = ""
     @State private var showEditor: Bool = false
 
     var body: some View {
@@ -692,22 +790,58 @@ struct TimelineSegment: View {
                     .textFieldStyle(.roundedBorder)
                     .font(.caption)
 
-                    HStack(spacing: 4) {
-                        Text(formatDuration(sliderValue))
-                            .font(.caption2)
-                            .monospacedDigit()
-                            .frame(width: 40)
+                    VStack(spacing: 6) {
+                        HStack(spacing: 4) {
+                            TextField("", text: $durationText)
+                                .textFieldStyle(.roundedBorder)
+                                .font(.caption)
+                                .monospacedDigit()
+                                .frame(width: 50)
+                                .multilineTextAlignment(.trailing)
+                                .onChange(of: durationText) { newValue in
+                                    // Filter to only allow numbers and decimal point
+                                    let filtered = newValue.filter { $0.isNumber || $0 == "." }
+                                    if filtered != newValue {
+                                        durationText = filtered
+                                    }
 
-                        Slider(value: $sliderValue, in: 0.166...120, step: 0.166, onEditingChanged: { editing in
-                            if !editing {
-                                onDurationChange(sliderValue)
-                            }
-                        })
-                        .tint(.white.opacity(0.8))
+                                    if let value = Double(filtered), value >= 0.166 && value <= 120 {
+                                        sliderValue = value
+                                    }
+                                }
+                                .onSubmit {
+                                    if let value = Double(durationText), value >= 0.166 && value <= 120 {
+                                        onDurationChange(value)
+                                    } else {
+                                        durationText = formatDurationNumber(sliderValue)
+                                    }
+                                }
 
-                        Text("120m")
-                            .font(.caption2)
-                            .frame(width: 40)
+                            Text("min")
+                                .font(.caption2)
+                                .foregroundColor(.white.opacity(0.9))
+                        }
+
+                        HStack(spacing: 4) {
+                            Text(formatDuration(sliderValue))
+                                .font(.caption2)
+                                .monospacedDigit()
+                                .frame(width: 40)
+                                .foregroundColor(.white.opacity(0.9))
+
+                            Slider(value: $sliderValue, in: 0.166...120, step: 0.166, onEditingChanged: { editing in
+                                durationText = formatDurationNumber(sliderValue)
+                                if !editing {
+                                    onDurationChange(sliderValue)
+                                }
+                            })
+                            .tint(.white.opacity(0.8))
+
+                            Text("120m")
+                                .font(.caption2)
+                                .frame(width: 40)
+                                .foregroundColor(.white.opacity(0.7))
+                        }
                     }
 
                     Button(action: onDelete) {
@@ -737,12 +871,14 @@ struct TimelineSegment: View {
         .onAppear {
             editName = task.name
             sliderValue = task.durationMinutes
+            durationText = formatDurationNumber(task.durationMinutes)
         }
         .onChange(of: task.name) { newValue in
             editName = newValue
         }
         .onChange(of: task.durationMinutes) { newValue in
             sliderValue = newValue
+            durationText = formatDurationNumber(newValue)
         }
     }
 
@@ -756,6 +892,14 @@ struct TimelineSegment: View {
             return "\(seconds)s"
         } else {
             return "\(Int(minutes))m"
+        }
+    }
+
+    private func formatDurationNumber(_ minutes: Double) -> String {
+        if minutes < 1 {
+            return String(format: "%.2f", minutes)
+        } else {
+            return String(format: "%.0f", minutes)
         }
     }
 }
