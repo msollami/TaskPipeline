@@ -748,31 +748,111 @@ struct TimelineSegment: View {
                     if width < 35 {
                         // Extremely narrow - show just duration vertically
                         VStack(spacing: 0) {
-                            Text(formatDuration(task.durationMinutes))
-                                .font(.system(size: 9, weight: .bold))
-                                .lineLimit(2)
-                                .multilineTextAlignment(.center)
-                                .foregroundColor(.white)
-                                .minimumScaleFactor(0.6)
+                            if isEditing {
+                                TextField("", text: $durationText)
+                                    .textFieldStyle(.plain)
+                                    .font(.system(size: 9, weight: .bold))
+                                    .foregroundColor(.white)
+                                    .multilineTextAlignment(.center)
+                                    .frame(width: 25)
+                                    .focused($isDurationFieldFocused)
+                                    .onChange(of: durationText) { newValue in
+                                        let filtered = newValue.filter { $0.isNumber || $0 == "." }
+                                        if filtered != newValue {
+                                            durationText = filtered
+                                        }
+                                        if let value = Double(filtered), value >= 0.166 && value <= 120 {
+                                            sliderValue = value
+                                        }
+                                    }
+                                    .onSubmit {
+                                        if let value = Double(durationText), value >= 0.166 && value <= 120 {
+                                            onDurationChange(value)
+                                        }
+                                        onTap()
+                                    }
+                            } else {
+                                Text(formatDuration(task.durationMinutes))
+                                    .font(.system(size: 9, weight: .bold))
+                                    .lineLimit(2)
+                                    .multilineTextAlignment(.center)
+                                    .foregroundColor(.white)
+                                    .minimumScaleFactor(0.6)
+                            }
                         }
                         .padding(2)
                     } else if width < 80 {
                         // Very narrow - show only duration, centered
                         VStack(spacing: 0) {
-                            Text(formatDuration(task.durationMinutes))
-                                .font(.system(size: 11, weight: .bold))
-                                .lineLimit(1)
-                                .foregroundColor(.white)
-                                .minimumScaleFactor(0.5)
+                            if isEditing {
+                                TextField("", text: $durationText)
+                                    .textFieldStyle(.plain)
+                                    .font(.system(size: 11, weight: .bold))
+                                    .foregroundColor(.white)
+                                    .multilineTextAlignment(.center)
+                                    .frame(width: 40)
+                                    .focused($isDurationFieldFocused)
+                                    .onChange(of: durationText) { newValue in
+                                        let filtered = newValue.filter { $0.isNumber || $0 == "." }
+                                        if filtered != newValue {
+                                            durationText = filtered
+                                        }
+                                        if let value = Double(filtered), value >= 0.166 && value <= 120 {
+                                            sliderValue = value
+                                        }
+                                    }
+                                    .onSubmit {
+                                        if let value = Double(durationText), value >= 0.166 && value <= 120 {
+                                            onDurationChange(value)
+                                        }
+                                        onTap()
+                                    }
+                            } else {
+                                Text(formatDuration(task.durationMinutes))
+                                    .font(.system(size: 11, weight: .bold))
+                                    .lineLimit(1)
+                                    .foregroundColor(.white)
+                                    .minimumScaleFactor(0.5)
+                            }
                         }
                         .padding(4)
                     } else if width < 120 {
                         // Narrow - show duration prominently, name smaller
                         VStack(spacing: 1) {
-                            Text(formatDuration(task.durationMinutes))
-                                .font(.system(size: 13, weight: .bold))
-                                .lineLimit(1)
-                                .foregroundColor(.white)
+                            if isEditing {
+                                HStack(spacing: 2) {
+                                    TextField("", text: $durationText)
+                                        .textFieldStyle(.plain)
+                                        .font(.system(size: 13, weight: .bold))
+                                        .foregroundColor(.white)
+                                        .multilineTextAlignment(.center)
+                                        .frame(width: 35)
+                                        .focused($isDurationFieldFocused)
+                                        .onChange(of: durationText) { newValue in
+                                            let filtered = newValue.filter { $0.isNumber || $0 == "." }
+                                            if filtered != newValue {
+                                                durationText = filtered
+                                            }
+                                            if let value = Double(filtered), value >= 0.166 && value <= 120 {
+                                                sliderValue = value
+                                            }
+                                        }
+                                        .onSubmit {
+                                            if let value = Double(durationText), value >= 0.166 && value <= 120 {
+                                                onDurationChange(value)
+                                            }
+                                            onTap()
+                                        }
+                                    Text("m")
+                                        .font(.system(size: 10, weight: .semibold))
+                                        .foregroundColor(.white.opacity(0.8))
+                                }
+                            } else {
+                                Text(formatDuration(task.durationMinutes))
+                                    .font(.system(size: 13, weight: .bold))
+                                    .lineLimit(1)
+                                    .foregroundColor(.white)
+                            }
 
                             Text(task.name)
                                 .font(.system(size: 8, weight: .medium))
@@ -791,9 +871,41 @@ struct TimelineSegment: View {
                                 .foregroundColor(.white)
                                 .minimumScaleFactor(0.7)
 
-                            Text(formatDuration(task.durationMinutes))
-                                .font(.system(size: 12, weight: .bold))
-                                .foregroundColor(.white.opacity(0.9))
+                            // Editable duration field
+                            if isEditing {
+                                HStack(spacing: 2) {
+                                    TextField("", text: $durationText)
+                                        .textFieldStyle(.plain)
+                                        .font(.system(size: 12, weight: .bold))
+                                        .foregroundColor(.white)
+                                        .multilineTextAlignment(.center)
+                                        .frame(width: 30)
+                                        .focused($isDurationFieldFocused)
+                                        .onChange(of: durationText) { newValue in
+                                            let filtered = newValue.filter { $0.isNumber || $0 == "." }
+                                            if filtered != newValue {
+                                                durationText = filtered
+                                            }
+                                            if let value = Double(filtered), value >= 0.166 && value <= 120 {
+                                                sliderValue = value
+                                            }
+                                        }
+                                        .onSubmit {
+                                            if let value = Double(durationText), value >= 0.166 && value <= 120 {
+                                                onDurationChange(value)
+                                            }
+                                            onTap() // Close editor
+                                        }
+
+                                    Text("m")
+                                        .font(.system(size: 10, weight: .semibold))
+                                        .foregroundColor(.white.opacity(0.8))
+                                }
+                            } else {
+                                Text(formatDuration(task.durationMinutes))
+                                    .font(.system(size: 12, weight: .bold))
+                                    .foregroundColor(.white.opacity(0.9))
+                            }
                         }
                         .padding(6)
                     }
@@ -810,93 +922,6 @@ struct TimelineSegment: View {
                 onTap()
             }
             .focusable(false) // Disable focus ring
-
-            // Expanded editor as overlay - doesn't affect layout
-            if isEditing {
-                VStack(spacing: 8) {
-                    TextField("Task name", text: $editName, onCommit: {
-                        onNameChange(editName)
-                    })
-                    .textFieldStyle(.roundedBorder)
-                    .font(.caption)
-
-                    VStack(spacing: 6) {
-                        HStack(spacing: 4) {
-                            TextField("", text: $durationText)
-                                .textFieldStyle(.roundedBorder)
-                                .font(.caption)
-                                .monospacedDigit()
-                                .frame(width: 50)
-                                .multilineTextAlignment(.trailing)
-                                .focused($isDurationFieldFocused)
-                                .onChange(of: durationText) { newValue in
-                                    // Filter to only allow numbers and decimal point
-                                    let filtered = newValue.filter { $0.isNumber || $0 == "." }
-                                    if filtered != newValue {
-                                        durationText = filtered
-                                    }
-
-                                    if let value = Double(filtered), value >= 0.166 && value <= 120 {
-                                        sliderValue = value
-                                    }
-                                }
-                                .onSubmit {
-                                    if let value = Double(durationText), value >= 0.166 && value <= 120 {
-                                        onDurationChange(value)
-                                    } else {
-                                        durationText = formatDurationNumber(sliderValue)
-                                    }
-                                }
-
-                            Text("min")
-                                .font(.caption2)
-                                .foregroundColor(.white.opacity(0.9))
-                        }
-
-                        HStack(spacing: 4) {
-                            Text(formatDuration(sliderValue))
-                                .font(.caption2)
-                                .monospacedDigit()
-                                .frame(width: 40)
-                                .foregroundColor(.white.opacity(0.9))
-
-                            Slider(value: $sliderValue, in: 0.166...120, step: 0.166, onEditingChanged: { editing in
-                                durationText = formatDurationNumber(sliderValue)
-                                if !editing {
-                                    onDurationChange(sliderValue)
-                                }
-                            })
-                            .tint(.white.opacity(0.8))
-
-                            Text("120m")
-                                .font(.caption2)
-                                .frame(width: 40)
-                                .foregroundColor(.white.opacity(0.7))
-                        }
-                    }
-
-                    Button(action: onDelete) {
-                        HStack {
-                            Image(systemName: "trash")
-                            Text("Delete")
-                        }
-                        .font(.caption2)
-                        .foregroundColor(.red)
-                    }
-                    .buttonStyle(.bordered)
-                }
-                .padding(8)
-                .background(
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(TaskColorHelper.gradient(for: task.colorIndex))
-                        .opacity(0.95)
-                )
-                .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
-                .frame(width: 240)
-                .offset(y: 80)
-                .transition(.scale.combined(with: .opacity))
-                .zIndex(100)
-            }
         }
         .frame(width: width, height: 60)
         .focusable(false) // Prevent outer container from getting focus
@@ -938,6 +963,8 @@ struct TimelineSegment: View {
     private func formatDurationNumber(_ minutes: Double) -> String {
         if minutes < 1 {
             return String(format: "%.2f", minutes)
+        } else if minutes < 10 {
+            return String(format: "%.0f", minutes)
         } else {
             return String(format: "%.0f", minutes)
         }
