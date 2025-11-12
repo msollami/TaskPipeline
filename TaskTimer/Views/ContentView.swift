@@ -355,15 +355,18 @@ struct InteractiveTimelineBar: View {
                                 isSelected: selectedTask?.id == task.id,
                                 isEditing: editingTask?.id == task.id,
                                 onTap: {
-                                    if selectedTask?.id == task.id {
+                                    if editingTask?.id == task.id {
+                                        // Close editor if clicking same task
                                         selectedTask = nil
                                         editingTask = nil
                                     } else {
+                                        // Open editor on single click
                                         selectedTask = task
-                                        editingTask = nil
+                                        editingTask = task
                                     }
                                 },
                                 onDoubleTap: {
+                                    // Double-tap also opens editor (same as single tap now)
                                     selectedTask = task
                                     editingTask = task
                                 },
@@ -456,33 +459,11 @@ struct InteractiveTimelineBar: View {
                 }
             }
 
-            // Instructions with delete button for selected task
+            // Instructions
             HStack(spacing: 8) {
-                Text("Click to select • Drag to reorder")
+                Text("Click to edit • Drag to reorder")
                     .font(.system(size: 9))
                     .foregroundColor(.secondary.opacity(0.7))
-
-                if selectedTask != nil && editingTask == nil {
-                    Button(action: {
-                        if let selected = selectedTask,
-                           let index = timerManager.tasks.firstIndex(where: { $0.id == selected.id }) {
-                            timerManager.removeTask(at: index)
-                            selectedTask = nil
-                        }
-                    }) {
-                        HStack(spacing: 3) {
-                            Image(systemName: "trash")
-                            Text("Delete")
-                        }
-                        .font(.system(size: 9, weight: .medium))
-                        .foregroundColor(.red)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color.red.opacity(0.15))
-                        .cornerRadius(4)
-                    }
-                    .buttonStyle(.plain)
-                }
             }
         }
     }
@@ -746,6 +727,7 @@ struct TimelineSegment: View {
     @State private var sliderValue: Double = 0
     @State private var durationText: String = ""
     @State private var showEditor: Bool = false
+    @FocusState private var isDurationFieldFocused: Bool
 
     var body: some View {
         ZStack {
@@ -756,8 +738,9 @@ struct TimelineSegment: View {
                     .fill(TaskColorHelper.gradient(for: task.colorIndex))
                     .overlay(
                         RoundedRectangle(cornerRadius: 8)
-                            .stroke(isSelected ? (isEditing ? Color.white : Color.white.opacity(0.6)) : Color.clear, lineWidth: isSelected ? 3 : 0)
+                            .stroke(isEditing ? Color.white.opacity(0.8) : Color.clear, lineWidth: isEditing ? 2 : 0)
                     )
+                    .shadow(color: isEditing ? Color.white.opacity(0.3) : Color.clear, radius: isEditing ? 8 : 0, x: 0, y: 0)
 
                 // Content - responsive layout based on width
                 Group {
@@ -842,6 +825,7 @@ struct TimelineSegment: View {
                                 .monospacedDigit()
                                 .frame(width: 50)
                                 .multilineTextAlignment(.trailing)
+                                .focused($isDurationFieldFocused)
                                 .onChange(of: durationText) { newValue in
                                     // Filter to only allow numbers and decimal point
                                     let filtered = newValue.filter { $0.isNumber || $0 == "." }
@@ -923,6 +907,14 @@ struct TimelineSegment: View {
         .onChange(of: task.durationMinutes) { newValue in
             sliderValue = newValue
             durationText = formatDurationNumber(newValue)
+        }
+        .onChange(of: isEditing) { editing in
+            if editing {
+                // Focus the duration field when editor opens
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    isDurationFieldFocused = true
+                }
+            }
         }
     }
 
