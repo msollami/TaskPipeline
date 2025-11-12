@@ -886,6 +886,7 @@ struct TimelineSegment: View {
                                         .multilineTextAlignment(.center)
                                         .frame(width: 30)
                                         .focused($isDurationFieldFocused)
+                                        .allowsHitTesting(true)
                                         .onChange(of: durationText) { newValue in
                                             let filtered = newValue.filter { $0.isNumber || $0 == "." }
                                             if filtered != newValue {
@@ -906,6 +907,7 @@ struct TimelineSegment: View {
                                         .font(.system(size: 10, weight: .semibold))
                                         .foregroundColor(.white.opacity(0.8))
                                 }
+                                .allowsHitTesting(true)
                             } else {
                                 Text(formatDuration(task.durationMinutes))
                                     .font(.system(size: 12, weight: .bold))
@@ -929,7 +931,6 @@ struct TimelineSegment: View {
             .focusable(false) // Disable focus ring
         }
         .frame(width: width, height: 60)
-        .focusable(false) // Prevent outer container from getting focus
         .onAppear {
             editName = task.name
             sliderValue = task.durationMinutes
