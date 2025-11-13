@@ -813,34 +813,44 @@ struct TimelineSegment: View {
 
                             // Editable duration field
                             if isEditing {
-                                HStack(spacing: 2) {
-                                    TextField("", text: $durationText)
-                                        .textFieldStyle(.plain)
-                                        .font(.system(size: 12, weight: .bold))
-                                        .foregroundColor(.white)
-                                        .multilineTextAlignment(.center)
-                                        .frame(width: 30)
-                                        .focused($isDurationFieldFocused)
-                                        .allowsHitTesting(true)
-                                        .onChange(of: durationText) { newValue in
-                                            let filtered = newValue.filter { $0.isNumber || $0 == "." }
-                                            if filtered != newValue {
-                                                durationText = filtered
+                                VStack(spacing: 3) {
+                                    HStack(spacing: 2) {
+                                        TextField("", text: $durationText)
+                                            .textFieldStyle(.plain)
+                                            .font(.system(size: 12, weight: .bold))
+                                            .foregroundColor(.white)
+                                            .multilineTextAlignment(.center)
+                                            .frame(width: 30)
+                                            .focused($isDurationFieldFocused)
+                                            .allowsHitTesting(true)
+                                            .onChange(of: durationText) { newValue in
+                                                let filtered = newValue.filter { $0.isNumber || $0 == "." }
+                                                if filtered != newValue {
+                                                    durationText = filtered
+                                                }
+                                                if let value = Double(filtered), value >= 0.166 && value <= 120 {
+                                                    sliderValue = value
+                                                }
                                             }
-                                            if let value = Double(filtered), value >= 0.166 && value <= 120 {
-                                                sliderValue = value
+                                            .onSubmit {
+                                                if let value = Double(durationText), value >= 0.166 && value <= 120 {
+                                                    onDurationChange(value)
+                                                }
+                                                onTap() // Close editor
                                             }
-                                        }
-                                        .onSubmit {
-                                            if let value = Double(durationText), value >= 0.166 && value <= 120 {
-                                                onDurationChange(value)
-                                            }
-                                            onTap() // Close editor
-                                        }
 
-                                    Text("m")
-                                        .font(.system(size: 10, weight: .semibold))
-                                        .foregroundColor(.white.opacity(0.8))
+                                        Text("m")
+                                            .font(.system(size: 10, weight: .semibold))
+                                            .foregroundColor(.white.opacity(0.8))
+                                    }
+
+                                    Button(action: onDelete) {
+                                        Image(systemName: "trash.fill")
+                                            .font(.system(size: 9))
+                                            .foregroundColor(.red.opacity(0.9))
+                                    }
+                                    .buttonStyle(.plain)
+                                    .help("Delete task")
                                 }
                                 .allowsHitTesting(true)
                             } else {
