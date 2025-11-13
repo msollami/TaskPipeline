@@ -43,6 +43,7 @@ struct TimelineEditorView: View {
     @State private var showPipelineLibrary: Bool = false
     @State private var showSavePipeline: Bool = false
     @State private var newPipelineName: String = ""
+    @State private var lockTotalTime: Bool = true
 
     var body: some View {
         VStack(spacing: 0) {
@@ -50,13 +51,30 @@ struct TimelineEditorView: View {
             HStack(alignment: .center, spacing: 16) {
                 // Left: Title
                 Text("Task Pipeline")
-                    .font(.title)
-                    .fontWeight(.bold)
+                    .font(.system(size: 32, weight: .bold, design: .monospaced))
 
                 Spacer()
 
-                // Right: Total time control
+                // Right: Lock toggle and total time control
                 HStack(spacing: 8) {
+                    // Lock total time toggle
+                    Button(action: {
+                        lockTotalTime.toggle()
+                    }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: lockTotalTime ? "lock.fill" : "lock.open.fill")
+                                .font(.system(size: 12))
+                                .foregroundColor(lockTotalTime ? .accentColor : .secondary)
+                            Text(lockTotalTime ? "Locked" : "Unlocked")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .help(lockTotalTime ? "Total time is locked. Click to unlock and allow manual durations." : "Total time is unlocked. Durations won't be recalculated.")
+
+                    Divider()
+                        .frame(height: 20)
                     Text("Total Time:")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
@@ -111,7 +129,7 @@ struct TimelineEditorView: View {
                         .padding(.top, 12)
                 } else {
                     // Interactive Timeline Bar - PRIMARY VISUAL
-                    InteractiveTimelineBar(timerManager: timerManager)
+                    InteractiveTimelineBar(timerManager: timerManager, lockTotalTime: $lockTotalTime)
                         .padding(.horizontal, 24)
                         .padding(.top, 16)
                 }
@@ -267,6 +285,7 @@ struct TimelineEditorView: View {
 
 struct InteractiveTimelineBar: View {
     @ObservedObject var timerManager: TimerManager
+    @Binding var lockTotalTime: Bool
     @State private var selectedTask: TimerTask?
     @State private var editingTask: TimerTask?
     @State private var draggedTask: TimerTask?
@@ -316,15 +335,47 @@ struct InteractiveTimelineBar: View {
                                         timerManager.updateTask(at: idx, name: newName, durationMinutes: task.durationMinutes)
                                     }
                                 },
-                                onDurationChange: { newDuration in
+                                onDurationChange: { newDuration, unlockIfLocked in
                                     if let idx = timerManager.tasks.firstIndex(where: { $0.id == task.id }) {
-                                        // Always use proportional logic
-                                        let totalDuration = timerManager.tasks.reduce(0.0) { $0 + $1.durationMinutes }
-                                        let oldDuration = task.durationMinutes
-                                        let newTotal = totalDuration - oldDuration + newDuration
-                                        timerManager.updateTask(at: idx, name: task.name, durationMinutes: newDuration)
-                                        timerManager.tasks[idx].proportion = newDuration / newTotal
-                                        timerManager.setTargetTotalMinutes(newTotal)
+                                        // If manually typed, unlock total time
+                                        if unlockIfLocked && lockTotalTime {
+                                            lockTotalTime = false
+                                        }
+
+                                        if lockTotalTime {
+                                            // Locked: maintain total time and recalculate proportions
+                                            let currentTotal = timerManager.targetTotalMinutes
+
+                                            // Update this task's duration
+                                            timerManager.updateTask(at: idx, name: task.name, durationMinutes: newDuration)
+
+                                            // Recalculate proportions for all tasks to maintain total
+                                            let newProportion = newDuration / currentTotal
+                                            timerManager.tasks[idx].proportion = newProportion
+
+                                            // Redistribute remaining time to other tasks
+                                            let remainingTime = currentTotal - newDuration
+                                            let otherTasksOldTotal = timerManager.tasks.enumerated().reduce(0.0) { sum, item in
+                                                return item.offset == idx ? sum : sum + item.element.durationMinutes
+                                            }
+
+                                            if otherTasksOldTotal > 0 {
+                                                for i in 0..<timerManager.tasks.count where i != idx {
+                                                    let ratio = timerManager.tasks[i].durationMinutes / otherTasksOldTotal
+                                                    let newTaskDuration = remainingTime * ratio
+                                                    timerManager.tasks[i].durationMinutes = newTaskDuration
+                                                    timerManager.tasks[i].proportion = newTaskDuration / currentTotal
+                                                }
+                                            }
+                                        } else {
+                                            // Unlocked: just update the duration and total
+                                            let totalDuration = timerManager.tasks.reduce(0.0) { $0 + $1.durationMinutes }
+                                            let oldDuration = task.durationMinutes
+                                            let newTotal = totalDuration - oldDuration + newDuration
+                                            timerManager.updateTask(at: idx, name: task.name, durationMinutes: newDuration)
+                                            timerManager.tasks[idx].proportion = newDuration / newTotal
+                                            timerManager.setTargetTotalMinutes(newTotal)
+                                        }
                                     }
                                 },
                                 onDelete: {
@@ -661,7 +712,7 @@ struct TimelineSegment: View {
     let onDoubleTap: () -> Void
     @ObservedObject var timerManager: TimerManager
     let onNameChange: (String) -> Void
-    let onDurationChange: (Double) -> Void
+    let onDurationChange: (Double, Bool) -> Void
     let onDelete: () -> Void
 
     @State private var editName: String = ""
@@ -669,22 +720,55 @@ struct TimelineSegment: View {
     @State private var durationText: String = ""
     @State private var showEditor: Bool = false
     @FocusState private var isDurationFieldFocused: Bool
+    @FocusState private var isNameFieldFocused: Bool
 
     var body: some View {
         ZStack {
             // Main segment
             ZStack {
                 // Background
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(TaskColorHelper.gradient(for: task.colorIndex))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(isEditing ? Color.white.opacity(0.8) : Color.clear, lineWidth: isEditing ? 2 : 0)
-                    )
-                    .shadow(color: isEditing ? Color.white.opacity(0.3) : Color.clear, radius: isEditing ? 8 : 0, x: 0, y: 0)
+                backgroundView
 
                 // Content - responsive layout based on width
-                Group {
+                contentView
+            }
+            .frame(width: width, height: 60)
+            .shadow(color: Color.black.opacity(0.2), radius: 2, x: 0, y: 1)
+            .contentShape(Rectangle()) // Define hit area without button behavior
+            .onTapGesture(count: 2) {
+                onDoubleTap()
+            }
+            .onTapGesture(count: 1) {
+                onTap()
+            }
+            .focusable(false) // Disable focus ring
+        }
+        .frame(width: width, height: 60)
+        .onAppear {
+            editName = task.name
+            sliderValue = task.durationMinutes
+            durationText = formatDurationNumber(task.durationMinutes)
+        }
+        .onChange(of: task.name) { newValue in
+            editName = newValue
+        }
+        .onChange(of: task.durationMinutes) { newValue in
+            sliderValue = newValue
+            durationText = formatDurationNumber(newValue)
+        }
+        .onChange(of: isEditing) { editing in
+            if editing {
+                // Focus the name field when editor opens
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    isNameFieldFocused = true
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var contentView: some View {
+        Group {
                     if width < 35 {
                         // Extremely narrow - show just duration vertically
                         VStack(spacing: 0) {
@@ -707,7 +791,7 @@ struct TimelineSegment: View {
                                     }
                                     .onSubmit {
                                         if let value = Double(durationText), value >= 0.166 && value <= 120 {
-                                            onDurationChange(value)
+                                            onDurationChange(value, true)
                                         }
                                         onTap()
                                     }
@@ -743,7 +827,7 @@ struct TimelineSegment: View {
                                     }
                                     .onSubmit {
                                         if let value = Double(durationText), value >= 0.166 && value <= 120 {
-                                            onDurationChange(value)
+                                            onDurationChange(value, true)
                                         }
                                         onTap()
                                     }
@@ -779,7 +863,7 @@ struct TimelineSegment: View {
                                         }
                                         .onSubmit {
                                             if let value = Double(durationText), value >= 0.166 && value <= 120 {
-                                                onDurationChange(value)
+                                                onDurationChange(value, true)
                                             }
                                             onTap()
                                         }
@@ -804,12 +888,26 @@ struct TimelineSegment: View {
                     } else {
                         // Normal - show both name and duration clearly
                         VStack(spacing: 2) {
-                            Text(task.name)
-                                .font(.system(size: 10, weight: .semibold))
-                                .lineLimit(1)
-                                .multilineTextAlignment(.center)
-                                .foregroundColor(.white)
-                                .minimumScaleFactor(0.7)
+                            // Task name - editable when editing
+                            if isEditing {
+                                TextField("Task name", text: $editName)
+                                    .textFieldStyle(.plain)
+                                    .font(.system(size: 10, weight: .semibold))
+                                    .foregroundColor(.white)
+                                    .multilineTextAlignment(.center)
+                                    .focused($isNameFieldFocused)
+                                    .allowsHitTesting(true)
+                                    .onSubmit {
+                                        onNameChange(editName)
+                                    }
+                            } else {
+                                Text(task.name)
+                                    .font(.system(size: 10, weight: .semibold))
+                                    .lineLimit(1)
+                                    .multilineTextAlignment(.center)
+                                    .foregroundColor(.white)
+                                    .minimumScaleFactor(0.7)
+                            }
 
                             // Editable duration field
                             if isEditing {
@@ -834,7 +932,7 @@ struct TimelineSegment: View {
                                             }
                                             .onSubmit {
                                                 if let value = Double(durationText), value >= 0.166 && value <= 120 {
-                                                    onDurationChange(value)
+                                                    onDurationChange(value, true) // true = unlock if locked
                                                 }
                                                 onTap() // Close editor
                                             }
@@ -861,41 +959,17 @@ struct TimelineSegment: View {
                         }
                         .padding(6)
                     }
-                }
+        }
+    }
 
-            }
-            .frame(width: width, height: 60)
-            .shadow(color: Color.black.opacity(0.2), radius: 2, x: 0, y: 1)
-            .contentShape(Rectangle()) // Define hit area without button behavior
-            .onTapGesture(count: 2) {
-                onDoubleTap()
-            }
-            .onTapGesture(count: 1) {
-                onTap()
-            }
-            .focusable(false) // Disable focus ring
-        }
-        .frame(width: width, height: 60)
-        .onAppear {
-            editName = task.name
-            sliderValue = task.durationMinutes
-            durationText = formatDurationNumber(task.durationMinutes)
-        }
-        .onChange(of: task.name) { newValue in
-            editName = newValue
-        }
-        .onChange(of: task.durationMinutes) { newValue in
-            sliderValue = newValue
-            durationText = formatDurationNumber(newValue)
-        }
-        .onChange(of: isEditing) { editing in
-            if editing {
-                // Focus the duration field when editor opens
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    isDurationFieldFocused = true
-                }
-            }
-        }
+    private var backgroundView: some View {
+        RoundedRectangle(cornerRadius: 8)
+            .fill(TaskColorHelper.gradient(for: task.colorIndex))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(isEditing ? Color.white.opacity(0.8) : Color.clear, lineWidth: isEditing ? 2 : 0)
+            )
+            .shadow(color: isEditing ? Color.white.opacity(0.3) : Color.clear, radius: isEditing ? 8 : 0, x: 0, y: 0)
     }
 
     private var segmentColor: Color {
