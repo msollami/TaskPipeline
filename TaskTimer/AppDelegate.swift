@@ -23,21 +23,21 @@ struct SettingsSection<Content: View>: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
                 Image(systemName: icon)
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.system(size: 13, weight: .semibold))
                     .foregroundColor(.accentColor)
 
                 Text(title)
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.system(size: 13, weight: .semibold))
                     .foregroundColor(.primary)
             }
-            .padding(.bottom, 4)
+            .padding(.bottom, 2)
 
             content
         }
-        .padding(16)
+        .padding(12)
     }
 }
 
@@ -48,9 +48,17 @@ struct SettingsView: View {
     @AppStorage("completionSound") private var completionSound: String = "Ping"
     @AppStorage("speakTaskName") private var speakTaskName: Bool = true
     @AppStorage("bufferLength") private var bufferLength: Double = 0
+    @AppStorage("clockGlowRed") private var clockGlowRed: Double = 0.2
+    @AppStorage("clockGlowGreen") private var clockGlowGreen: Double = 1.0
+    @AppStorage("clockGlowBlue") private var clockGlowBlue: Double = 0.3
+    @AppStorage("clockColorRed") private var clockColorRed: Double = 0.2
+    @AppStorage("clockColorGreen") private var clockColorGreen: Double = 1.0
+    @AppStorage("clockColorBlue") private var clockColorBlue: Double = 0.3
 
     @State private var maxDurationText: String = "120"
     @State private var bufferLengthText: String = "0"
+    @State private var clockGlowColor: Color = Color(red: 0.2, green: 1.0, blue: 0.3)
+    @State private var clockColor: Color = Color(red: 0.2, green: 1.0, blue: 0.3)
 
     let availableSounds = [
         "Ping",
@@ -73,131 +81,131 @@ struct SettingsView: View {
             // Header
             HStack {
                 Text("Settings")
-                    .font(.title)
+                    .font(.headline)
                     .fontWeight(.bold)
                 Spacer()
             }
-            .padding(24)
+            .padding(12)
             .background(Color.secondary.opacity(0.05))
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    // Max task duration setting
-                    SettingsSection(title: "Timer", icon: "clock") {
-                        VStack(alignment: .leading, spacing: 12) {
-                            HStack(spacing: 12) {
-                                Text("Maximum Task Duration")
-                                    .font(.subheadline)
-                                    .frame(width: 180, alignment: .leading)
+            // Two-column layout
+            HStack(alignment: .top, spacing: 16) {
+                // Left column
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Timer")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.secondary)
 
-                                TextField("", text: $maxDurationText)
-                                    .textFieldStyle(.roundedBorder)
-                                    .frame(width: 60)
-                                    .onSubmit {
-                                        updateMaxDuration()
-                                    }
-
-                                Text("minutes")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                            }
-
-                            Text("Set the maximum duration for a single task (10-600 minutes).")
+                    SettingRow(label: "Max Duration") {
+                        HStack(spacing: 4) {
+                            TextField("", text: $maxDurationText)
+                                .textFieldStyle(.roundedBorder)
+                                .frame(width: 50)
+                                .onSubmit { updateMaxDuration() }
+                            Text("min")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
-                                .padding(.leading, 180)
-
-                            Divider()
-                                .padding(.vertical, 4)
-
-                            HStack(spacing: 12) {
-                                Text("Buffer Between Tasks")
-                                    .font(.subheadline)
-                                    .frame(width: 180, alignment: .leading)
-
-                                TextField("", text: $bufferLengthText)
-                                    .textFieldStyle(.roundedBorder)
-                                    .frame(width: 60)
-                                    .onSubmit {
-                                        updateBufferLength()
-                                    }
-
-                                Text("seconds")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                            }
-
-                            Text("Pause time between tasks (0-300 seconds).")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                                .padding(.leading, 180)
                         }
                     }
 
-                    // Sound settings
-                    SettingsSection(title: "Audio", icon: "speaker.wave.2") {
-                        VStack(alignment: .leading, spacing: 16) {
-                            // Sound selection
-                            HStack(spacing: 12) {
-                                Text("Completion Sound")
-                                    .font(.subheadline)
-                                    .frame(width: 180, alignment: .leading)
-
-                                Picker("", selection: $completionSound) {
-                                    ForEach(availableSounds, id: \.self) { sound in
-                                        Text(sound).tag(sound)
-                                    }
-                                }
-                                .frame(width: 120)
-
-                                Button(action: {
-                                    if let sound = NSSound(named: completionSound) {
-                                        sound.play()
-                                    }
-                                }) {
-                                    Image(systemName: "play.circle")
-                                        .font(.system(size: 16))
-                                }
-                                .buttonStyle(.plain)
-                                .foregroundColor(.accentColor)
-                                .help("Preview sound")
-                            }
-
-                            Divider()
-
-                            // Text-to-speech option
-                            HStack(spacing: 12) {
-                                Text("Announce Task Names")
-                                    .font(.subheadline)
-                                    .frame(width: 180, alignment: .leading)
-
-                                Toggle("", isOn: $speakTaskName)
-                                    .labelsHidden()
-                            }
-
-                            Text("Speak the task name aloud when switching tasks.")
+                    SettingRow(label: "Buffer") {
+                        HStack(spacing: 4) {
+                            TextField("", text: $bufferLengthText)
+                                .textFieldStyle(.roundedBorder)
+                                .frame(width: 50)
+                                .onSubmit { updateBufferLength() }
+                            Text("sec")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
-                                .padding(.leading, 180)
                         }
+                    }
+
+                    Text("Appearance")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.secondary)
+                        .padding(.top, 8)
+
+                    SettingRow(label: "Clock Color") {
+                        ColorPicker("", selection: $clockColor, supportsOpacity: false)
+                            .labelsHidden()
+                            .frame(width: 40)
+                            .onChange(of: clockColor) { updateClockColor($0) }
+                    }
+
+                    SettingRow(label: "Clock Glow") {
+                        ColorPicker("", selection: $clockGlowColor, supportsOpacity: false)
+                            .labelsHidden()
+                            .frame(width: 40)
+                            .onChange(of: clockGlowColor) { updateGlowColor($0) }
                     }
                 }
-                .padding(24)
+                .frame(maxWidth: .infinity)
+
+                Divider()
+
+                // Right column
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Audio")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.secondary)
+
+                    SettingRow(label: "Sound") {
+                        HStack(spacing: 6) {
+                            Picker("", selection: $completionSound) {
+                                ForEach(availableSounds, id: \.self) { sound in
+                                    Text(sound).tag(sound)
+                                }
+                            }
+                            .frame(width: 90)
+
+                            Button(action: {
+                                if let sound = NSSound(named: completionSound) {
+                                    sound.play()
+                                }
+                            }) {
+                                Image(systemName: "play.circle.fill")
+                                    .font(.system(size: 14))
+                            }
+                            .buttonStyle(.plain)
+                            .foregroundColor(.accentColor)
+                        }
+                    }
+
+                    SettingRow(label: "Announce") {
+                        Toggle("", isOn: $speakTaskName)
+                            .labelsHidden()
+                            .controlSize(.small)
+                    }
+                }
+                .frame(maxWidth: .infinity)
             }
+            .padding(12)
 
             // Footer with buttons
             Divider()
 
             HStack(spacing: 12) {
-                Button("Reset to Defaults") {
+                Button("Reset") {
                     maxTaskDuration = 120
                     maxDurationText = "120"
                     bufferLength = 0
                     bufferLengthText = "0"
                     completionSound = "Ping"
                     speakTaskName = true
+                    clockGlowRed = 0.2
+                    clockGlowGreen = 1.0
+                    clockGlowBlue = 0.3
+                    clockGlowColor = Color(red: 0.2, green: 1.0, blue: 0.3)
+                    clockColorRed = 0.2
+                    clockColorGreen = 1.0
+                    clockColorBlue = 0.3
+                    clockColor = Color(red: 0.2, green: 1.0, blue: 0.3)
                 }
                 .buttonStyle(.bordered)
+                .controlSize(.small)
 
                 Spacer()
 
@@ -207,15 +215,18 @@ struct SettingsView: View {
                     NSApplication.shared.keyWindow?.close()
                 }
                 .buttonStyle(.borderedProminent)
+                .controlSize(.small)
                 .keyboardShortcut(.defaultAction)
             }
-            .padding(16)
+            .padding(10)
             .background(Color.secondary.opacity(0.03))
         }
-        .frame(width: 520, height: 450)
+        .frame(width: 480, height: 280)
         .onAppear {
             maxDurationText = "\(Int(maxTaskDuration))"
             bufferLengthText = "\(Int(bufferLength))"
+            clockGlowColor = Color(red: clockGlowRed, green: clockGlowGreen, blue: clockGlowBlue)
+            clockColor = Color(red: clockColorRed, green: clockColorGreen, blue: clockColorBlue)
         }
     }
 
@@ -232,6 +243,47 @@ struct SettingsView: View {
             bufferLength = value
         } else {
             bufferLengthText = "\(Int(bufferLength))"
+        }
+    }
+
+    private func updateGlowColor(_ color: Color) {
+        let nsColor = NSColor(color)
+        if let rgbColor = nsColor.usingColorSpace(.deviceRGB) {
+            clockGlowRed = Double(rgbColor.redComponent)
+            clockGlowGreen = Double(rgbColor.greenComponent)
+            clockGlowBlue = Double(rgbColor.blueComponent)
+        }
+    }
+
+    private func updateClockColor(_ color: Color) {
+        let nsColor = NSColor(color)
+        if let rgbColor = nsColor.usingColorSpace(.deviceRGB) {
+            clockColorRed = Double(rgbColor.redComponent)
+            clockColorGreen = Double(rgbColor.greenComponent)
+            clockColorBlue = Double(rgbColor.blueComponent)
+        }
+    }
+}
+
+// MARK: - Setting Row Helper
+
+struct SettingRow<Content: View>: View {
+    let label: String
+    let content: Content
+
+    init(label: String, @ViewBuilder content: () -> Content) {
+        self.label = label
+        self.content = content()
+    }
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Text(label)
+                .font(.caption)
+                .foregroundColor(.primary)
+                .frame(width: 85, alignment: .leading)
+
+            content
         }
     }
 }

@@ -7,24 +7,104 @@
 
 import SwiftUI
 
+// MARK: - Scrolling Text View
+
+struct ScrollingTextView: View {
+    let text: String
+    let font: Font
+    let foregroundColor: Color
+
+    @State private var textWidth: CGFloat = 0
+    @State private var containerWidth: CGFloat = 0
+    @State private var offset: CGFloat = 0
+    @State private var shouldScroll: Bool = false
+
+    var body: some View {
+        GeometryReader { geometry in
+            ZStack(alignment: .center) {
+                // Measure text width
+                Text(text)
+                    .font(font)
+                    .foregroundColor(foregroundColor)
+                    .fixedSize()
+                    .frame(maxWidth: .infinity, alignment: shouldScroll ? .leading : .center)
+                    .background(
+                        GeometryReader { textGeometry in
+                            Color.clear.preference(
+                                key: TextWidthPreferenceKey.self,
+                                value: textGeometry.size.width
+                            )
+                        }
+                    )
+                    .opacity(shouldScroll ? 0 : 1) // Hide if scrolling
+
+                // Scrolling text (only visible if needed)
+                if shouldScroll {
+                    HStack(spacing: 40) {
+                        Text(text)
+                            .font(font)
+                            .foregroundColor(foregroundColor)
+                            .fixedSize()
+
+                        Text(text)
+                            .font(font)
+                            .foregroundColor(foregroundColor)
+                            .fixedSize()
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+                    .offset(x: offset)
+                    .onAppear {
+                        withAnimation(
+                            Animation.linear(duration: Double(textWidth) / 15.0)
+                                .repeatForever(autoreverses: false)
+                        ) {
+                            offset = -(textWidth + 40)
+                        }
+                    }
+                }
+            }
+            .frame(width: geometry.size.width, height: geometry.size.height, alignment: .center)
+            .clipped()
+            .onPreferenceChange(TextWidthPreferenceKey.self) { width in
+                textWidth = width
+                containerWidth = geometry.size.width
+                shouldScroll = width > geometry.size.width
+
+                if shouldScroll {
+                    offset = 0
+                }
+            }
+        }
+    }
+}
+
+struct TextWidthPreferenceKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
 // MARK: - Digital Clock Components
 
 struct DigitalClockView: View {
     let timeString: String
+    let clockColor: Color
     let glowColor: Color
 
-    init(timeString: String, glowColor: Color = Color(red: 0.2, green: 1.0, blue: 0.3)) {
+    init(timeString: String, clockColor: Color = Color(red: 0.2, green: 1.0, blue: 0.3), glowColor: Color = Color(red: 0.2, green: 1.0, blue: 0.3)) {
         self.timeString = timeString
+        self.clockColor = clockColor
         self.glowColor = glowColor
     }
 
     var body: some View {
-        HStack(spacing: 3) {
+        HStack(spacing: 2) {
             ForEach(Array(timeString.enumerated()), id: \.offset) { index, char in
                 if char == ":" {
-                    ColonView(glowColor: glowColor)
+                    ColonView(clockColor: clockColor, glowColor: glowColor)
                 } else {
-                    DigitView(digit: String(char), glowColor: glowColor)
+                    DigitView(digit: String(char), clockColor: clockColor, glowColor: glowColor)
                 }
             }
         }
@@ -33,45 +113,48 @@ struct DigitalClockView: View {
 
 struct DigitView: View {
     let digit: String
+    let clockColor: Color
     let glowColor: Color
 
     var body: some View {
         ZStack {
             // Background dimmed segments
-            SegmentedDigit(digit: digit, isBackground: true)
+            SegmentedDigit(digit: digit, clockColor: clockColor, isBackground: true)
                 .opacity(0.12)
 
             // Active glowing segments
-            SegmentedDigit(digit: digit, isBackground: false)
-                .foregroundColor(glowColor)
+            SegmentedDigit(digit: digit, clockColor: clockColor, isBackground: false)
+                .foregroundColor(clockColor)
                 .shadow(color: glowColor.opacity(0.8), radius: 6, x: 0, y: 0)
                 .shadow(color: glowColor.opacity(0.4), radius: 3, x: 0, y: 0)
         }
-        .frame(width: 22, height: 38)
+        .frame(width: 18, height: 32)
     }
 }
 
 struct ColonView: View {
+    let clockColor: Color
     let glowColor: Color
 
     var body: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 6) {
             Circle()
-                .fill(glowColor)
+                .fill(clockColor)
                 .frame(width: 3, height: 3)
                 .shadow(color: glowColor.opacity(0.8), radius: 3, x: 0, y: 0)
 
             Circle()
-                .fill(glowColor)
+                .fill(clockColor)
                 .frame(width: 3, height: 3)
                 .shadow(color: glowColor.opacity(0.8), radius: 3, x: 0, y: 0)
         }
-        .frame(width: 6, height: 38)
+        .frame(width: 5, height: 32)
     }
 }
 
 struct SegmentedDigit: View {
     let digit: String
+    let clockColor: Color
     let isBackground: Bool
 
     var body: some View {
@@ -88,7 +171,7 @@ struct SegmentedDigit: View {
                 // Top horizontal (a)
                 if isBackground || segments.contains("a") {
                     Capsule()
-                        .fill(glowColor)
+                        .fill(clockColor)
                         .frame(width: segmentWidth, height: thickness)
                         .position(x: width / 2, y: thickness / 2)
                 }
@@ -96,7 +179,7 @@ struct SegmentedDigit: View {
                 // Top right vertical (b)
                 if isBackground || segments.contains("b") {
                     Capsule()
-                        .fill(glowColor)
+                        .fill(clockColor)
                         .frame(width: thickness, height: segmentHeight)
                         .position(x: width - thickness, y: height / 4)
                 }
@@ -104,7 +187,7 @@ struct SegmentedDigit: View {
                 // Bottom right vertical (c)
                 if isBackground || segments.contains("c") {
                     Capsule()
-                        .fill(glowColor)
+                        .fill(clockColor)
                         .frame(width: thickness, height: segmentHeight)
                         .position(x: width - thickness, y: height * 0.75)
                 }
@@ -112,7 +195,7 @@ struct SegmentedDigit: View {
                 // Bottom horizontal (d)
                 if isBackground || segments.contains("d") {
                     Capsule()
-                        .fill(glowColor)
+                        .fill(clockColor)
                         .frame(width: segmentWidth, height: thickness)
                         .position(x: width / 2, y: height - thickness / 2)
                 }
@@ -120,7 +203,7 @@ struct SegmentedDigit: View {
                 // Bottom left vertical (e)
                 if isBackground || segments.contains("e") {
                     Capsule()
-                        .fill(glowColor)
+                        .fill(clockColor)
                         .frame(width: thickness, height: segmentHeight)
                         .position(x: thickness, y: height * 0.75)
                 }
@@ -128,7 +211,7 @@ struct SegmentedDigit: View {
                 // Top left vertical (f)
                 if isBackground || segments.contains("f") {
                     Capsule()
-                        .fill(glowColor)
+                        .fill(clockColor)
                         .frame(width: thickness, height: segmentHeight)
                         .position(x: thickness, y: height / 4)
                 }
@@ -136,7 +219,7 @@ struct SegmentedDigit: View {
                 // Middle horizontal (g)
                 if isBackground || segments.contains("g") {
                     Capsule()
-                        .fill(glowColor)
+                        .fill(clockColor)
                         .frame(width: segmentWidth, height: thickness)
                         .position(x: width / 2, y: height / 2)
                 }
@@ -159,14 +242,16 @@ struct SegmentedDigit: View {
         default: return []
         }
     }
-
-    private var glowColor: Color {
-        Color(red: 0.2, green: 1.0, blue: 0.3)
-    }
 }
 
 struct FocusedTaskView: View {
     @ObservedObject var timerManager: TimerManager
+    @AppStorage("clockGlowRed") private var clockGlowRed: Double = 0.2
+    @AppStorage("clockGlowGreen") private var clockGlowGreen: Double = 1.0
+    @AppStorage("clockGlowBlue") private var clockGlowBlue: Double = 0.3
+    @AppStorage("clockColorRed") private var clockColorRed: Double = 0.2
+    @AppStorage("clockColorGreen") private var clockColorGreen: Double = 1.0
+    @AppStorage("clockColorBlue") private var clockColorBlue: Double = 0.3
     @State private var isFlashing: Bool = false
 
     var body: some View {
@@ -177,7 +262,11 @@ struct FocusedTaskView: View {
 
         return AnyView(
         ZStack {
-            CompactTimelineView(timerManager: timerManager)
+            CompactTimelineView(
+                timerManager: timerManager,
+                clockColor: Color(red: clockColorRed, green: clockColorGreen, blue: clockColorBlue),
+                glowColor: Color(red: clockGlowRed, green: clockGlowGreen, blue: clockGlowBlue)
+            )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             // Task transition flash overlay
@@ -265,34 +354,52 @@ struct FocusedTaskView: View {
 
 struct CompactTimelineView: View {
     @ObservedObject var timerManager: TimerManager
+    let clockColor: Color
+    let glowColor: Color
 
     var body: some View {
         // Safety check: Don't render if completed or no tasks
         if timerManager.isCompleted || timerManager.tasks.isEmpty {
             EmptyView()
         } else {
-            VStack(spacing: 20) {
+            VStack(spacing: 12) {
                 // Top row: Clock, task name, and task counter
-                HStack(alignment: .center, spacing: 16) {
+                HStack(alignment: .center, spacing: 12) {
                     // Left: Clock (fixed width to prevent shifting)
                     DigitalClockView(
                         timeString: timerManager.formattedTime(timerManager.remainingSeconds),
-                        glowColor: Color(red: 0.2, green: 1.0, blue: 0.3)
+                        clockColor: clockColor,
+                        glowColor: glowColor
                     )
-                    .frame(width: 120, alignment: .leading)
+                    .frame(width: 85, alignment: .leading)
 
-                    Spacer()
+                    Spacer(minLength: 8)
 
-                    // Center: Current task name
-                    if let currentTask = timerManager.currentTask {
-                        Text(currentTask.name)
-                            .font(.system(size: 24, weight: .medium))
-                            .foregroundColor(.primary)
-                            .multilineTextAlignment(.center)
-                            .lineLimit(1)
+                    // Center: Current task name with scrolling (wider area) or Paused indicator
+                    if timerManager.isPaused {
+                        HStack(spacing: 8) {
+                            Image(systemName: "pause.circle.fill")
+                                .font(.system(size: 20))
+                                .foregroundColor(.orange)
+                            Text("PAUSED")
+                                .font(.custom("Avenir Next", size: 20).weight(.semibold))
+                                .foregroundColor(.orange)
+                        }
+                        .shadow(color: .black.opacity(0.3), radius: 2, x: 0, y: 1)
+                        .frame(minWidth: 200, maxWidth: .infinity)
+                        .frame(height: 30)
+                    } else if let currentTask = timerManager.currentTask {
+                        ScrollingTextView(
+                            text: currentTask.name,
+                            font: .custom("Avenir Next", size: 24).weight(.medium),
+                            foregroundColor: .primary
+                        )
+                        .shadow(color: .black.opacity(0.3), radius: 2, x: 0, y: 1)
+                        .frame(minWidth: 200, maxWidth: .infinity)
+                        .frame(height: 30)
                     }
 
-                    Spacer()
+                    Spacer(minLength: 8)
 
                     // Right: Task counter and total time remaining
                     VStack(alignment: .trailing, spacing: 3) {
@@ -307,7 +414,7 @@ struct CompactTimelineView: View {
                                 .foregroundColor(.secondary.opacity(0.7))
                         }
                     }
-                    .frame(width: 120, alignment: .trailing)
+                    .frame(width: 90, alignment: .trailing)
                 }
 
             // Timeline bar with controls on the right
@@ -322,9 +429,9 @@ struct CompactTimelineView: View {
                                     ForEach(Array(timerManager.tasks.enumerated()), id: \.element.id) { index, task in
                                         let width = segmentWidth(for: task, totalWidth: geometry.size.width)
 
-                                        ZStack {
+                                        ZStack(alignment: .center) {
                                             Rectangle()
-                                                .fill(TaskColorHelper.gradient(for: task.colorIndex))
+                                                .fill(TaskColorHelper.gradient(for: task))
                                                 .opacity(index < timerManager.currentTaskIndex ? 0.5 : 1.0)
 
                                             if width > 40 {
@@ -332,10 +439,12 @@ struct CompactTimelineView: View {
                                                     .font(.system(size: 9, weight: .semibold))
                                                     .foregroundColor(.white.opacity(0.9))
                                                     .lineLimit(1)
+                                                    .multilineTextAlignment(.center)
                                                     .padding(.horizontal, 6)
+                                                    .frame(maxWidth: .infinity)
                                             }
                                         }
-                                        .frame(width: width)
+                                        .frame(width: width, height: 28)
                                     }
                                 }
                                 .frame(height: 28)
@@ -410,8 +519,8 @@ struct CompactTimelineView: View {
             }
             }
             .padding(.horizontal, 20)
-            .padding(.top, 16)
-            .padding(.bottom, 8)
+            .padding(.top, 2)
+            .padding(.bottom, 1)
         }
     }
 

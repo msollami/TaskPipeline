@@ -106,7 +106,7 @@ struct CompletionView: View {
                 .controlSize(.small)
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+            .padding(.vertical, 8)
             .background(Color.secondary.opacity(0.08))
 
             Divider()
@@ -164,7 +164,7 @@ struct CompletionView: View {
                             }
                         }
                         .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
+                        .padding(.vertical, 6)
                         .background(
                             task.isCompleted
                                 ? (index % 2 == 0 ? Color.clear : Color.secondary.opacity(0.04))

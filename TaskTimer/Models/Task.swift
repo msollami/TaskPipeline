@@ -14,14 +14,16 @@ struct TimerTask: Identifiable, Codable, Equatable {
     var isCompleted: Bool
     var colorIndex: Int
     var proportion: Double? // For proportional mode (0.0 to 1.0)
+    var isBreak: Bool // Whether this is a break task
 
-    init(id: UUID = UUID(), name: String, durationMinutes: Double, isCompleted: Bool = false, colorIndex: Int = 0, proportion: Double? = nil) {
+    init(id: UUID = UUID(), name: String, durationMinutes: Double, isCompleted: Bool = false, colorIndex: Int = 0, proportion: Double? = nil, isBreak: Bool = false) {
         self.id = id
         self.name = name
         self.durationMinutes = durationMinutes
         self.isCompleted = isCompleted
         self.colorIndex = colorIndex
         self.proportion = proportion
+        self.isBreak = isBreak
     }
 
     var durationSeconds: TimeInterval {

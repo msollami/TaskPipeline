@@ -18,11 +18,11 @@ struct ContentView: View {
             if timerManager.isCompleted {
                 // Completion view - session finished
                 CompletionView(timerManager: timerManager)
-                    .frame(minWidth: 450, idealWidth: 480, maxWidth: 550, minHeight: 300, idealHeight: 350, maxHeight: 500)
+                    .frame(minWidth: 450, idealWidth: 480, maxWidth: 550, minHeight: 200, idealHeight: 250, maxHeight: 400)
             } else if timerManager.isRunning {
                 // Running mode - show focused view (compact)
                 FocusedTaskView(timerManager: timerManager)
-                    .frame(minWidth: 500, minHeight: 160)
+                    .frame(minWidth: 500, minHeight: 95)
             } else {
                 // Edit mode - timeline-based editor
                 TimelineEditorView(timerManager: timerManager, pipelineManager: pipelineManager)
@@ -38,12 +38,17 @@ struct TimelineEditorView: View {
     @ObservedObject var timerManager: TimerManager
     @ObservedObject var pipelineManager: PipelineManager
     @State private var totalMinutesText: String = ""
-    @State private var isEditingTotalTime: Bool = false
-    @FocusState private var isTotalTimeFocused: Bool
     @State private var showPipelineLibrary: Bool = false
     @State private var showSavePipeline: Bool = false
     @State private var newPipelineName: String = ""
-    @State private var lockTotalTime: Bool = true
+    @State private var lockTotalTime: Bool = false
+    @State private var breakDurationMinutes: Double = 0.0
+    @State private var breakDurationText: String = "0"
+    @State private var useDoneByTime: Bool = false
+    @State private var doneByTimeText: String = "12:00AM"
+    @FocusState private var isBreakFieldFocused: Bool
+    @FocusState private var isTotalFieldFocused: Bool
+    @FocusState private var isDoneByFieldFocused: Bool
 
     var body: some View {
         VStack(spacing: 0) {
@@ -51,72 +56,117 @@ struct TimelineEditorView: View {
             HStack(alignment: .center, spacing: 16) {
                 // Left: Title
                 Text("Task Pipeline")
-                    .font(.system(size: 32, weight: .bold, design: .monospaced))
+                    .font(.system(size: 20, weight: .semibold, design: .rounded))
 
                 Spacer()
 
-                // Right: Lock toggle and total time control
+                // Right: Total time control
                 HStack(spacing: 8) {
-                    // Lock total time toggle
-                    Button(action: {
-                        lockTotalTime.toggle()
-                    }) {
-                        HStack(spacing: 4) {
-                            Image(systemName: lockTotalTime ? "lock.fill" : "lock.open.fill")
-                                .font(.system(size: 12))
-                                .foregroundColor(lockTotalTime ? .accentColor : .secondary)
-                            Text(lockTotalTime ? "Locked" : "Unlocked")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    .buttonStyle(.plain)
-                    .help(lockTotalTime ? "Total time is locked. Click to unlock and allow manual durations." : "Total time is unlocked. Durations won't be recalculated.")
-
-                    Divider()
-                        .frame(height: 20)
-                    Text("Total Time:")
-                        .font(.subheadline)
+                    // Break duration control
+                    Text("Break\nLength:")
+                        .font(.caption)
                         .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                        .fixedSize()
 
-                    if isEditingTotalTime {
-                        TextField("", text: $totalMinutesText)
+                    VStack(alignment: .center, spacing: 2) {
+                        TextField("", text: $breakDurationText)
                             .textFieldStyle(.plain)
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                            .frame(width: 50)
-                            .multilineTextAlignment(.trailing)
-                            .focused($isTotalTimeFocused)
+                            .font(.caption)
+                            .fontWeight(isBreakFieldFocused ? .semibold : .medium)
+                            .foregroundColor(isBreakFieldFocused ? .primary : .secondary)
+                            .frame(width: 25)
+                            .multilineTextAlignment(.center)
+                            .focused($isBreakFieldFocused)
                             .onSubmit {
-                                applyTargetTimeChange()
+                                if let value = Double(breakDurationText), value >= 0 {
+                                    breakDurationMinutes = value
+                                    rebuildTasksWithBreaks()
+
+                                    // Update total time after rebuild
+                                    let newTotal = timerManager.tasks.reduce(0.0) { $0 + $1.durationMinutes }
+                                    timerManager.setTargetTotalMinutes(newTotal)
+                                }
+                                breakDurationText = "\(Int(breakDurationMinutes))"
+                                isBreakFieldFocused = false
                             }
 
                         Text("min")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-
-                        Button("✓") {
-                            applyTargetTimeChange()
-                        }
-                        .buttonStyle(.plain)
-                        .foregroundColor(.green)
-                        .font(.caption)
-                    } else {
-                        Button(action: {
-                            startEditingTargetTime()
-                        }) {
-                            HStack(spacing: 4) {
-                                Text(formatTotalMinutes(timerManager.targetTotalMinutes))
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-
-                                Image(systemName: "pencil.circle")
-                                    .font(.caption)
-                                    .foregroundColor(.accentColor)
-                            }
-                        }
-                        .buttonStyle(.plain)
+                            .font(.system(size: 9, weight: .regular))
+                            .foregroundColor(.secondary.opacity(0.7))
                     }
+
+                    Divider()
+                        .frame(height: 20)
+                    Text("Total\nTime:")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                        .fixedSize()
+
+                    VStack(alignment: .center, spacing: 2) {
+                        TextField("", text: $totalMinutesText)
+                            .textFieldStyle(.plain)
+                            .font(.caption)
+                            .fontWeight(isTotalFieldFocused ? .semibold : .medium)
+                            .foregroundColor(isTotalFieldFocused ? .primary : .secondary)
+                            .frame(width: 30)
+                            .multilineTextAlignment(.center)
+                            .focused($isTotalFieldFocused)
+                            .onSubmit {
+                                if let newTotalMinutes = Double(totalMinutesText), newTotalMinutes > 0 {
+                                    // Calculate how many breaks will be added
+                                    let nonBreakTasks = timerManager.tasks.filter { !$0.isBreak }
+                                    let breakCount = max(0, nonBreakTasks.count - 1)
+                                    let totalBreakTime = Double(breakCount) * breakDurationMinutes
+
+                                    // Subtract break time from total to get available time for tasks
+                                    let availableTaskTime = max(1, newTotalMinutes - totalBreakTime)
+                                    timerManager.setTargetTotalMinutes(availableTaskTime)
+
+                                    // Rebuild with breaks to apply the new total
+                                    rebuildTasksWithBreaks()
+                                }
+                                // Display actual total including breaks
+                                let actualTotal = timerManager.tasks.reduce(0.0) { $0 + $1.durationMinutes }
+                                totalMinutesText = "\(Int(actualTotal))"
+                                isTotalFieldFocused = false
+                            }
+                            .onChange(of: timerManager.targetTotalMinutes) { newValue in
+                                if !isTotalFieldFocused {
+                                    // Display actual total including breaks
+                                    let actualTotal = timerManager.tasks.reduce(0.0) { $0 + $1.durationMinutes }
+                                    totalMinutesText = "\(Int(actualTotal))"
+                                }
+                            }
+
+                        Text("min")
+                            .font(.system(size: 9, weight: .regular))
+                            .foregroundColor(.secondary.opacity(0.7))
+                    }
+
+                    Divider()
+                        .frame(height: 20)
+
+                    // Done by time control
+                    Text("Done\nBy:")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                        .fixedSize()
+
+                    TextField("", text: $doneByTimeText)
+                        .textFieldStyle(.plain)
+                        .font(.caption)
+                        .fontWeight(isDoneByFieldFocused ? .semibold : .medium)
+                        .foregroundColor(isDoneByFieldFocused ? .primary : .secondary)
+                        .frame(width: 50)
+                        .multilineTextAlignment(.trailing)
+                        .focused($isDoneByFieldFocused)
+                        .onSubmit {
+                            applyDoneByTimeChange()
+                            isDoneByFieldFocused = false
+                        }
                 }
             }
             .padding()
@@ -135,7 +185,7 @@ struct TimelineEditorView: View {
                 }
 
                 // Inline add task row
-                AddTaskRowView(timerManager: timerManager)
+                AddTaskRowView(timerManager: timerManager, breakDurationMinutes: $breakDurationMinutes)
                     .padding(.horizontal, 24)
                     .zIndex(200) // Keep above timeline segment editors
 
@@ -190,6 +240,25 @@ struct TimelineEditorView: View {
                 pipelineName: $newPipelineName
             )
         }
+        .onAppear {
+            updateDoneByTimeFromTotal()
+            // Display actual total including breaks
+            let actualTotal = timerManager.tasks.reduce(0.0) { $0 + $1.durationMinutes }
+            totalMinutesText = "\(Int(actualTotal))"
+            breakDurationText = "\(Int(breakDurationMinutes))"
+        }
+        .onChange(of: timerManager.targetTotalMinutes) { _ in
+            if !isDoneByFieldFocused {
+                updateDoneByTimeFromTotal()
+            }
+        }
+        .onChange(of: timerManager.tasks) { _ in
+            // Update total time display when tasks change
+            if !isTotalFieldFocused {
+                let actualTotal = timerManager.tasks.reduce(0.0) { $0 + $1.durationMinutes }
+                totalMinutesText = "\(Int(actualTotal))"
+            }
+        }
     }
 
     private var emptyStateView: some View {
@@ -233,52 +302,100 @@ struct TimelineEditorView: View {
         }
     }
 
-    private func startEditingTotalTime() {
-        let totalMinutes = timerManager.tasks.reduce(0) { $0 + $1.durationMinutes }
-        totalMinutesText = "\(Int(totalMinutes))"
-        isEditingTotalTime = true
-        isTotalTimeFocused = true
-    }
+    private func applyDoneByTimeChange() {
+        // Parse time format H:mmAM/PM or HH:mmAM/PM
+        let text = doneByTimeText.uppercased()
+        let isAM = text.contains("AM")
+        let isPM = text.contains("PM")
 
-    private func startEditingTargetTime() {
-        totalMinutesText = "\(Int(timerManager.targetTotalMinutes))"
-        isEditingTotalTime = true
-        isTotalTimeFocused = true
-    }
+        // Remove AM/PM to get just the time
+        let timeOnly = text.replacingOccurrences(of: "AM", with: "").replacingOccurrences(of: "PM", with: "").trimmingCharacters(in: .whitespaces)
+        let timeParts = timeOnly.split(separator: ":")
 
-    private func applyTargetTimeChange() {
-        guard let newTotalMinutes = Double(totalMinutesText), newTotalMinutes > 0 else {
-            isEditingTotalTime = false
+        guard timeParts.count == 2,
+              let hour12 = Int(timeParts[0]),
+              let minute = Int(String(timeParts[1]).prefix(2)),
+              hour12 >= 1 && hour12 <= 12,
+              minute >= 0 && minute < 60 else {
+            // Invalid format, revert
+            updateDoneByTimeFromTotal()
             return
         }
 
-        timerManager.setTargetTotalMinutes(newTotalMinutes)
-        isEditingTotalTime = false
-    }
+        // Convert to 24-hour format
+        var hour24 = hour12
+        if isAM && hour12 == 12 {
+            hour24 = 0  // 12 AM = 0:00
+        } else if isPM && hour12 != 12 {
+            hour24 = hour12 + 12  // 1 PM = 13:00, etc.
+        }
 
-    private func applyTotalTimeChange() {
-        guard let newTotalMinutes = Double(totalMinutesText), newTotalMinutes > 0 else {
-            isEditingTotalTime = false
+        // Calculate total time needed to reach this time
+        let now = Date()
+        let calendar = Calendar.current
+
+        var dateComponents = calendar.dateComponents([.year, .month, .day], from: now)
+        dateComponents.hour = hour24
+        dateComponents.minute = minute
+
+        guard var targetDate = calendar.date(from: dateComponents) else {
             return
         }
 
-        let currentTotalMinutes = timerManager.tasks.reduce(0) { $0 + $1.durationMinutes }
-        guard currentTotalMinutes > 0 else {
-            isEditingTotalTime = false
-            return
+        // If target time is in the past (earlier today), assume it's tomorrow
+        if targetDate < now {
+            targetDate = calendar.date(byAdding: .day, value: 1, to: targetDate) ?? targetDate
         }
 
-        // Calculate scaling factor
-        let scaleFactor = newTotalMinutes / currentTotalMinutes
+        // Calculate minutes between now and target
+        let minutesUntilTarget = calendar.dateComponents([.minute], from: now, to: targetDate).minute ?? 0
 
-        // Scale all tasks proportionally
-        for (index, task) in timerManager.tasks.enumerated() {
-            let newDuration = max(0.166, task.durationMinutes * scaleFactor)
-            timerManager.updateTask(at: index, name: task.name, durationMinutes: newDuration)
+        if minutesUntilTarget > 0 {
+            timerManager.setTargetTotalMinutes(Double(minutesUntilTarget))
         }
-
-        isEditingTotalTime = false
     }
+
+    private func updateDoneByTimeFromTotal() {
+        // Update done by time based on current total time
+        let now = Date()
+        let calendar = Calendar.current
+        let totalMinutes = Int(timerManager.targetTotalMinutes)
+
+        if let futureTime = calendar.date(byAdding: .minute, value: totalMinutes, to: now) {
+            let hour = calendar.component(.hour, from: futureTime)
+            let minute = calendar.component(.minute, from: futureTime)
+
+            // Convert to 12-hour format with AM/PM
+            let hour12 = hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour)
+            let ampm = hour < 12 ? "AM" : "PM"
+            doneByTimeText = String(format: "%d:%02d%@", hour12, minute, ampm)
+        }
+    }
+
+
+    private func rebuildTasksWithBreaks() {
+        // Remove existing break tasks
+        let nonBreakTasks = timerManager.tasks.filter { !$0.isBreak }
+
+        // Clear all tasks
+        timerManager.tasks.removeAll()
+
+        // Re-add tasks with breaks between them
+        for (index, task) in nonBreakTasks.enumerated() {
+            timerManager.addTask(task)
+
+            // Add break after each task except the last one
+            if breakDurationMinutes > 0 && index < nonBreakTasks.count - 1 {
+                let breakTask = TimerTask(
+                    name: "Break",
+                    durationMinutes: breakDurationMinutes,
+                    isBreak: true
+                )
+                timerManager.addTask(breakTask)
+            }
+        }
+    }
+
 }
 
 // MARK: - Interactive Timeline Bar (Primary Visual)
@@ -368,13 +485,13 @@ struct InteractiveTimelineBar: View {
                                                 }
                                             }
                                         } else {
-                                            // Unlocked: just update the duration and total
-                                            let totalDuration = timerManager.tasks.reduce(0.0) { $0 + $1.durationMinutes }
-                                            let oldDuration = task.durationMinutes
-                                            let newTotal = totalDuration - oldDuration + newDuration
+                                            // Unlocked: just update the duration exactly as entered
                                             timerManager.updateTask(at: idx, name: task.name, durationMinutes: newDuration)
-                                            timerManager.tasks[idx].proportion = newDuration / newTotal
-                                            timerManager.setTargetTotalMinutes(newTotal)
+
+                                            // Update total time to reflect actual sum (including breaks)
+                                            // Set directly to avoid proportional recalculation
+                                            let actualTotal = timerManager.tasks.reduce(0.0) { $0 + $1.durationMinutes }
+                                            timerManager.targetTotalMinutes = actualTotal
                                         }
                                     }
                                 },
@@ -899,6 +1016,8 @@ struct TimelineSegment: View {
                                     .allowsHitTesting(true)
                                     .onSubmit {
                                         onNameChange(editName)
+                                        // Focus duration field after submitting name
+                                        isDurationFieldFocused = true
                                     }
                             } else {
                                 Text(task.name)
@@ -943,9 +1062,15 @@ struct TimelineSegment: View {
                                     }
 
                                     Button(action: onDelete) {
-                                        Image(systemName: "trash.fill")
-                                            .font(.system(size: 9))
-                                            .foregroundColor(.red.opacity(0.9))
+                                        ZStack {
+                                            Circle()
+                                                .fill(Color.black.opacity(0.7))
+                                                .frame(width: 24, height: 24)
+
+                                            Image(systemName: "trash.fill")
+                                                .font(.system(size: 11))
+                                                .foregroundColor(.red)
+                                        }
                                     }
                                     .buttonStyle(.plain)
                                     .help("Delete task")
@@ -964,7 +1089,7 @@ struct TimelineSegment: View {
 
     private var backgroundView: some View {
         RoundedRectangle(cornerRadius: 8)
-            .fill(TaskColorHelper.gradient(for: task.colorIndex))
+            .fill(TaskColorHelper.gradient(for: task))
             .overlay(
                 RoundedRectangle(cornerRadius: 8)
                     .stroke(isEditing ? Color.white.opacity(0.8) : Color.clear, lineWidth: isEditing ? 2 : 0)
@@ -1074,8 +1199,15 @@ struct TaskColorHelper {
     }
 
     static func gradient(for task: TimerTask) -> LinearGradient {
-        let hash = abs(task.id.hashValue)
-        return gradient(for: hash)
+        // Break tasks get a special gray gradient
+        if task.isBreak {
+            return LinearGradient(
+                colors: [Color.gray.opacity(0.4), Color.gray.opacity(0.5)],
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+        }
+        return gradient(for: task.colorIndex)
     }
 
     // Legacy color method for backward compatibility
@@ -1223,9 +1355,10 @@ struct TaskDetailRow: View {
 
 struct AddTaskRowView: View {
     @ObservedObject var timerManager: TimerManager
+    @Binding var breakDurationMinutes: Double
     @State private var taskName: String = ""
-    @State private var durationText: String = "1"
-    @State private var sliderValue: Double = 1.0
+    @State private var durationText: String = "10"
+    @State private var sliderValue: Double = 10.0
     @AppStorage("maxTaskDuration") private var maxTaskDuration: Double = 120
     @State private var previousTaskCount: Int = 0
     private let minDuration: Double = 0.166 // 10 seconds
@@ -1381,22 +1514,40 @@ struct AddTaskRowView: View {
         // Allow empty task names - use "Task" as default
         let finalName = taskName.trimmingCharacters(in: .whitespaces).isEmpty ? "Task" : taskName
 
-        // Always create task with proportion based on duration
-        // Calculate proportion based on current total
-        let currentTotal = timerManager.targetTotalMinutes
-        let proportion = sliderValue / currentTotal
+        // Count non-break tasks to determine if we need to insert a break
+        let nonBreakTaskCount = timerManager.tasks.filter { !$0.isBreak }.count
 
+        // If there are already tasks and break duration is > 0, insert a break before this task
+        if nonBreakTaskCount > 0 && breakDurationMinutes > 0 {
+            let breakTask = TimerTask(
+                name: "Break",
+                durationMinutes: breakDurationMinutes,
+                isBreak: true
+            )
+            timerManager.addTask(breakTask)
+        }
+
+        // Create task with the desired duration
         let task = TimerTask(
             name: finalName,
             durationMinutes: sliderValue,
-            proportion: proportion
+            proportion: nil  // Will be set after we update total
         )
 
         timerManager.addTask(task)
 
+        // Update total time and proportions based on new task list
+        let newTotal = timerManager.tasks.reduce(0.0) { $0 + $1.durationMinutes }
+        timerManager.setTargetTotalMinutes(newTotal)
+
+        // Set proportions for all tasks based on the new total
+        for (index, task) in timerManager.tasks.enumerated() {
+            timerManager.tasks[index].proportion = task.durationMinutes / newTotal
+        }
+
         taskName = ""
-        durationText = "1"
-        sliderValue = 1.0
+        durationText = "10"
+        sliderValue = 10.0
     }
 }
 
@@ -1784,7 +1935,14 @@ struct ClickableTextField: NSViewRepresentable {
                 parent.onSubmit()
                 return true
             }
+            // Return false for other commands to allow default handling (prevents beeping)
+            // Common editing commands that should be allowed: deleteBackward, deleteForward, moveLeft, moveRight, etc.
             return false
+        }
+
+        // Override this to prevent beeping on unsupported commands
+        func control(_ control: NSControl, isValidObject obj: Any?) -> Bool {
+            return true
         }
     }
 }
@@ -1817,6 +1975,17 @@ class ForceFocusTextField: NSTextField {
     override var focusRingType: NSFocusRingType {
         get { return .none }
         set { }
+    }
+
+    // Prevent beeping - override to handle all key events
+    override func keyDown(with event: NSEvent) {
+        // Just pass through to the field editor - this prevents beeping
+        self.currentEditor()?.keyDown(with: event) ?? super.keyDown(with: event)
+    }
+
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        // Don't intercept key equivalents - let them be handled normally
+        return false
     }
 }
 
