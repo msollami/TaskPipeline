@@ -25,7 +25,7 @@ class TimerManager: ObservableObject {
     @Published var showTaskTransitionFlash: Bool = false
     @Published var pauseCount: Int = 0
     @Published var totalPausedSeconds: TimeInterval = 0
-    @Published var pipelineMode: PipelineMode = .fixedDuration
+    @Published var pipelineMode: PipelineMode = .proportional
     @Published var targetTotalMinutes: Double = 60 // Default 1 hour for proportional mode
 
     private var timer: Timer?
