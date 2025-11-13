@@ -85,6 +85,160 @@ struct TextWidthPreferenceKey: PreferenceKey {
     }
 }
 
+// MARK: - Always Scrolling Text View
+
+struct AlwaysScrollingTextView: View {
+    let text: String
+    let font: Font
+    let foregroundColor: Color
+
+    @State private var offset: CGFloat = 0
+    @State private var textWidth: CGFloat = 0
+
+    var body: some View {
+        GeometryReader { geometry in
+            HStack(spacing: 60) {
+                Text(text)
+                    .font(font)
+                    .foregroundColor(foregroundColor)
+                    .fixedSize()
+                    .background(
+                        GeometryReader { textGeometry in
+                            Color.clear.preference(
+                                key: TextWidthPreferenceKey.self,
+                                value: textGeometry.size.width
+                            )
+                        }
+                    )
+
+                Text(text)
+                    .font(font)
+                    .foregroundColor(foregroundColor)
+                    .fixedSize()
+            }
+            .offset(x: offset)
+            .onAppear {
+                // Start animation after text width is measured
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    guard textWidth > 0 else { return }
+                    withAnimation(
+                        Animation.linear(duration: Double(textWidth + 60) / 30.0)
+                            .repeatForever(autoreverses: false)
+                    ) {
+                        offset = -(textWidth + 60)
+                    }
+                }
+            }
+            .onPreferenceChange(TextWidthPreferenceKey.self) { width in
+                textWidth = width
+            }
+            .frame(width: geometry.size.width, height: geometry.size.height, alignment: .leading)
+            .clipped()
+        }
+    }
+}
+
+// MARK: - Break Quote Scrolling View (Queue-based)
+
+struct BreakQuoteScrollingView: View {
+    let font: Font
+    let foregroundColor: Color
+    let getRandomQuote: () -> String
+
+    @State private var quotes: [QuoteItem] = []
+    @State private var offset: CGFloat = 0
+    @State private var containerWidth: CGFloat = 0
+
+    struct QuoteItem: Identifiable {
+        let id = UUID()
+        let text: String
+        var width: CGFloat = 0
+    }
+
+    var body: some View {
+        GeometryReader { geometry in
+            ZStack(alignment: .leading) {
+                HStack(spacing: 80) {
+                    ForEach(quotes) { quote in
+                        Text(quote.text)
+                            .font(font)
+                            .foregroundColor(foregroundColor)
+                            .fixedSize()
+                            .background(
+                                GeometryReader { textGeometry in
+                                    Color.clear.onAppear {
+                                        updateQuoteWidth(id: quote.id, width: textGeometry.size.width)
+                                    }
+                                }
+                            )
+                    }
+                }
+                .offset(x: offset)
+                .onAppear {
+                    containerWidth = geometry.size.width
+                    // Start with first two quotes
+                    quotes = [
+                        QuoteItem(text: getRandomQuote()),
+                        QuoteItem(text: getRandomQuote())
+                    ]
+                    startScrolling()
+                }
+            }
+            .frame(width: geometry.size.width, height: geometry.size.height, alignment: .leading)
+            .clipped()
+        }
+    }
+
+    private func updateQuoteWidth(id: UUID, width: CGFloat) {
+        if let index = quotes.firstIndex(where: { $0.id == id }) {
+            quotes[index].width = width
+        }
+    }
+
+    private func startScrolling() {
+        guard !quotes.isEmpty else { return }
+
+        // Start from right edge of screen
+        offset = containerWidth
+
+        animateScroll()
+    }
+
+    private func animateScroll() {
+        guard !quotes.isEmpty else { return }
+
+        let firstQuote = quotes[0]
+        let spacing: CGFloat = 80
+
+        // Calculate distance: from right edge to completely off left edge
+        let totalDistance = containerWidth + firstQuote.width + spacing
+
+        // Scroll at consistent speed: 50 pixels per second
+        let duration = Double(totalDistance) / 50.0
+
+        withAnimation(.linear(duration: duration)) {
+            offset = -(firstQuote.width + spacing)
+        }
+
+        // After first quote scrolls off, remove it and add new one
+        DispatchQueue.main.asyncAfter(deadline: .now() + duration) {
+            // Remove the quote that just scrolled off
+            if !quotes.isEmpty {
+                quotes.removeFirst()
+            }
+
+            // Add a new quote to the end
+            quotes.append(QuoteItem(text: getRandomQuote()))
+
+            // Reset offset to continue seamlessly
+            offset = 0
+
+            // Continue scrolling
+            animateScroll()
+        }
+    }
+}
+
 // MARK: - Digital Clock Components
 
 struct DigitalClockView: View {
@@ -364,7 +518,7 @@ struct CompactTimelineView: View {
         } else {
             VStack(spacing: 12) {
                 // Top row: Clock, task name, and task counter
-                HStack(alignment: .center, spacing: 12) {
+                HStack(alignment: .center, spacing: 8) {
                     // Left: Clock (fixed width to prevent shifting)
                     DigitalClockView(
                         timeString: timerManager.formattedTime(timerManager.remainingSeconds),
@@ -373,7 +527,7 @@ struct CompactTimelineView: View {
                     )
                     .frame(width: 85, alignment: .leading)
 
-                    Spacer(minLength: 8)
+                    Spacer(minLength: 4)
 
                     // Center: Current task name with scrolling (wider area) or Paused indicator
                     if timerManager.isPaused {
@@ -386,20 +540,32 @@ struct CompactTimelineView: View {
                                 .foregroundColor(.orange)
                         }
                         .shadow(color: .black.opacity(0.3), radius: 2, x: 0, y: 1)
-                        .frame(minWidth: 200, maxWidth: .infinity)
+                        .frame(minWidth: 300, maxWidth: .infinity)
                         .frame(height: 30)
                     } else if let currentTask = timerManager.currentTask {
-                        ScrollingTextView(
-                            text: currentTask.name,
-                            font: .custom("Avenir Next", size: 24).weight(.medium),
-                            foregroundColor: .primary
-                        )
-                        .shadow(color: .black.opacity(0.3), radius: 2, x: 0, y: 1)
-                        .frame(minWidth: 200, maxWidth: .infinity)
-                        .frame(height: 30)
+                        if currentTask.isBreak {
+                            // Fun break mode with quotes - smooth queue-based scrolling
+                            BreakQuoteScrollingView(
+                                font: .custom("Avenir Next", size: 20).weight(.medium),
+                                foregroundColor: Color(red: 0.4, green: 0.8, blue: 1.0),
+                                getRandomQuote: getRandomBreakQuote
+                            )
+                            .shadow(color: Color(red: 0.4, green: 0.8, blue: 1.0).opacity(0.5), radius: 4, x: 0, y: 2)
+                            .frame(minWidth: 300, maxWidth: .infinity)
+                            .frame(height: 30)
+                        } else {
+                            AlwaysScrollingTextView(
+                                text: "Current Focus: \(currentTask.name)",
+                                font: .custom("Avenir Next", size: 20).weight(.medium),
+                                foregroundColor: .primary
+                            )
+                            .shadow(color: .black.opacity(0.3), radius: 2, x: 0, y: 1)
+                            .frame(minWidth: 300, maxWidth: .infinity)
+                            .frame(height: 30)
+                        }
                     }
 
-                    Spacer(minLength: 8)
+                    Spacer(minLength: 4)
 
                     // Right: Task counter and total time remaining
                     VStack(alignment: .trailing, spacing: 3) {
@@ -414,7 +580,7 @@ struct CompactTimelineView: View {
                                 .foregroundColor(.secondary.opacity(0.7))
                         }
                     }
-                    .frame(width: 90, alignment: .trailing)
+                    .frame(width: 80, alignment: .trailing)
                 }
 
             // Timeline bar with controls on the right
@@ -586,6 +752,32 @@ struct CompactTimelineView: View {
     private var totalDurationMinutes: Double {
         guard !timerManager.tasks.isEmpty else { return 1.0 }
         return timerManager.tasks.reduce(0) { $0 + $1.durationMinutes }
+    }
+
+    private func getRandomBreakQuote() -> String {
+        let quotes = [
+            "☕ Time to recharge! Your brain needs this break.",
+            "🌟 Great work so far! Stretch those legs.",
+            "🧘 Breathe in, breathe out. You've got this!",
+            "💪 Taking breaks makes you more productive.",
+            "🎯 Short breaks = Better focus later.",
+            "🌈 You're doing amazing! Keep it up.",
+            "⏸️ Pause. Reflect. Return stronger.",
+            "🚀 Rest now, achieve more later.",
+            "🎨 Creativity needs rest to flourish.",
+            "💡 The best ideas come during breaks.",
+            "🌊 Flow requires rest. Embrace it.",
+            "🎵 Step away from the screen. Dance a little!",
+            "🌺 Your mind is a garden. Water it with rest.",
+            "⚡ Recharging... Please wait... Just kidding, relax!",
+            "🏆 Champions rest between rounds.",
+            "🔥 You're on fire! Cool down for a moment.",
+            "🎪 Life's a balance. This is your balance beam.",
+            "🌙 Even the moon takes breaks. So should you.",
+            "🎲 Lucky break! Literally.",
+            "🍃 Like trees in autumn, release and renew."
+        ]
+        return quotes.randomElement() ?? "🎉 Break time! You earned it."
     }
 }
 

@@ -31,7 +31,10 @@ class TimerManager: ObservableObject {
     private var timer: Timer?
     private var pauseStartTime: Date?
     private var nextColorIndex: Int = 0
-    private let speechSynthesizer = AVSpeechSynthesizer()
+    private lazy var speechSynthesizer: AVSpeechSynthesizer? = {
+        guard UserDefaults.standard.bool(forKey: "speakTaskName") else { return nil }
+        return AVSpeechSynthesizer()
+    }()
     var onStatusChange: ((Bool) -> Void)?
     var onTaskTransition: (() -> Void)?
 
@@ -349,6 +352,16 @@ class TimerManager: ObservableObject {
     }
 
     private func speakTaskTransition() {
+        // Only speak if enabled in settings
+        guard UserDefaults.standard.bool(forKey: "speakTaskName") else { return }
+
+        // Initialize speech synthesizer lazily if needed
+        if speechSynthesizer == nil {
+            speechSynthesizer = AVSpeechSynthesizer()
+        }
+
+        guard let synthesizer = speechSynthesizer else { return }
+
         var message = ""
 
         if currentTaskIndex < tasks.count {
@@ -362,7 +375,7 @@ class TimerManager: ObservableObject {
         utterance.voice = AVSpeechSynthesisVoice(language: "en-US")
         utterance.rate = 0.5 // Slightly slower for clarity
 
-        speechSynthesizer.speak(utterance)
+        synthesizer.speak(utterance)
     }
 
     func formattedTime(_ seconds: TimeInterval) -> String {

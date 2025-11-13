@@ -213,6 +213,19 @@ struct TimelineEditorView: View {
                 .disabled(timerManager.tasks.isEmpty)
                 .help("Save current tasks as a pipeline")
 
+                // Clear button
+                Button(action: {
+                    timerManager.tasks.removeAll()
+                    timerManager.setTargetTotalMinutes(5)
+                }) {
+                    Text("Clear")
+                        .foregroundColor(.red)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.large)
+                .disabled(timerManager.tasks.isEmpty)
+                .help("Clear all tasks")
+
                 Spacer()
 
                 Button(action: { timerManager.start() }) {
