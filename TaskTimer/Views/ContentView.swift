@@ -1151,7 +1151,7 @@ struct AddTaskRowView: View {
             // Top row: Task name, duration/proportion, and add button
             HStack(spacing: 12) {
                 // Task name input with cursor
-                ClickableTextField(text: $taskName, placeholder: "Add task (optional)...", onSubmit: addTask)
+                ClickableTextField(text: $taskName, placeholder: "Add task (optional)...", onSubmit: addTask, autoFocus: true)
                     .font(.system(size: 14, weight: .medium))
 
                 // Duration controls (always proportional)
@@ -1642,6 +1642,7 @@ struct ClickableTextField: NSViewRepresentable {
     @Binding var text: String
     let placeholder: String
     let onSubmit: () -> Void
+    var autoFocus: Bool = false
 
     func makeNSView(context: Context) -> ForceFocusTextField {
         let textField = ForceFocusTextField()
@@ -1652,12 +1653,27 @@ struct ClickableTextField: NSViewRepresentable {
         textField.delegate = context.coordinator
         textField.refusesFirstResponder = false
 
+        // Auto-focus if requested
+        if autoFocus {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                textField.window?.makeFirstResponder(textField)
+            }
+        }
+
         return textField
     }
 
     func updateNSView(_ nsView: ForceFocusTextField, context: Context) {
         if nsView.stringValue != text {
             nsView.stringValue = text
+        }
+
+        // Auto-focus on first update if requested and not already focused
+        if autoFocus && !context.coordinator.hasFocused && nsView.window != nil {
+            DispatchQueue.main.async {
+                nsView.window?.makeFirstResponder(nsView)
+                context.coordinator.hasFocused = true
+            }
         }
     }
 
@@ -1667,6 +1683,7 @@ struct ClickableTextField: NSViewRepresentable {
 
     class Coordinator: NSObject, NSTextFieldDelegate {
         let parent: ClickableTextField
+        var hasFocused: Bool = false
 
         init(_ parent: ClickableTextField) {
             self.parent = parent
