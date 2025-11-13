@@ -97,7 +97,7 @@ struct AlwaysScrollingTextView: View {
 
     var body: some View {
         GeometryReader { geometry in
-            HStack(spacing: 60) {
+            HStack(spacing: 150) {
                 Text(text)
                     .font(font)
                     .foregroundColor(foregroundColor)
@@ -122,10 +122,10 @@ struct AlwaysScrollingTextView: View {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                     guard textWidth > 0 else { return }
                     withAnimation(
-                        Animation.linear(duration: Double(textWidth + 60) / 30.0)
+                        Animation.linear(duration: Double(textWidth + 150) / 30.0)
                             .repeatForever(autoreverses: false)
                     ) {
-                        offset = -(textWidth + 60)
+                        offset = -(textWidth + 150)
                     }
                 }
             }
@@ -210,19 +210,19 @@ struct BreakQuoteScrollingView: View {
         let firstQuote = quotes[0]
         let spacing: CGFloat = 80
 
-        // Calculate distance: from right edge to completely off left edge
-        let totalDistance = containerWidth + firstQuote.width + spacing
+        // Calculate distance: scroll just enough to move first quote off screen
+        let scrollDistance = firstQuote.width + spacing
 
         // Scroll at consistent speed: 50 pixels per second
-        let duration = Double(totalDistance) / 50.0
+        let duration = Double(scrollDistance) / 50.0
 
         withAnimation(.linear(duration: duration)) {
-            offset = -(firstQuote.width + spacing)
+            offset -= scrollDistance
         }
 
         // After first quote scrolls off, remove it and add new one
         DispatchQueue.main.asyncAfter(deadline: .now() + duration) {
-            // Remove the quote that just scrolled off
+            // Remove the quote that just scrolled off (without animation)
             if !quotes.isEmpty {
                 quotes.removeFirst()
             }
@@ -230,8 +230,8 @@ struct BreakQuoteScrollingView: View {
             // Add a new quote to the end
             quotes.append(QuoteItem(text: getRandomQuote()))
 
-            // Reset offset to continue seamlessly
-            offset = 0
+            // Adjust offset to account for removed quote (no animation, so it's seamless)
+            offset += scrollDistance
 
             // Continue scrolling
             animateScroll()
@@ -540,7 +540,7 @@ struct CompactTimelineView: View {
                                 .foregroundColor(.orange)
                         }
                         .shadow(color: .black.opacity(0.3), radius: 2, x: 0, y: 1)
-                        .frame(minWidth: 300, maxWidth: .infinity)
+                        .frame(minWidth: 250, maxWidth: .infinity)
                         .frame(height: 30)
                     } else if let currentTask = timerManager.currentTask {
                         if currentTask.isBreak {
@@ -551,7 +551,7 @@ struct CompactTimelineView: View {
                                 getRandomQuote: getRandomBreakQuote
                             )
                             .shadow(color: Color(red: 0.4, green: 0.8, blue: 1.0).opacity(0.5), radius: 4, x: 0, y: 2)
-                            .frame(minWidth: 300, maxWidth: .infinity)
+                            .frame(minWidth: 250, maxWidth: .infinity)
                             .frame(height: 30)
                         } else {
                             AlwaysScrollingTextView(
@@ -560,7 +560,7 @@ struct CompactTimelineView: View {
                                 foregroundColor: .primary
                             )
                             .shadow(color: .black.opacity(0.3), radius: 2, x: 0, y: 1)
-                            .frame(minWidth: 300, maxWidth: .infinity)
+                            .frame(minWidth: 250, maxWidth: .infinity)
                             .frame(height: 30)
                         }
                     }

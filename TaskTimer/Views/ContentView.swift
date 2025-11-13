@@ -195,7 +195,7 @@ struct TimelineEditorView: View {
             Divider()
 
             // Controls
-            HStack(spacing: 16) {
+            HStack(spacing: 12) {
                 // Pipeline library button (left)
                 Button(action: { showPipelineLibrary = true }) {
                     Label("Load Pipeline", systemImage: "folder")
