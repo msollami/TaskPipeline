@@ -176,12 +176,13 @@ struct BreakQuoteScrollingView: View {
                 .offset(x: offset)
                 .onAppear {
                     containerWidth = geometry.size.width
+                    offset = containerWidth  // Start quotes off screen to the right
                     // Start with first two quotes
                     quotes = [
                         QuoteItem(text: getRandomQuote()),
                         QuoteItem(text: getRandomQuote())
                     ]
-                    startScrolling()
+                    // Scrolling will start automatically once first quote width is measured
                 }
             }
             .frame(width: geometry.size.width, height: geometry.size.height, alignment: .leading)
@@ -192,16 +193,13 @@ struct BreakQuoteScrollingView: View {
     private func updateQuoteWidth(id: UUID, width: CGFloat) {
         if let index = quotes.firstIndex(where: { $0.id == id }) {
             quotes[index].width = width
+
+            // Only start scrolling once the first quote's width is measured
+            // Check if offset equals containerWidth (initial position) to ensure we only start once
+            if index == 0 && width > 0 && offset == containerWidth {
+                animateScroll()
+            }
         }
-    }
-
-    private func startScrolling() {
-        guard !quotes.isEmpty else { return }
-
-        // Start from right edge of screen
-        offset = containerWidth
-
-        animateScroll()
     }
 
     private func animateScroll() {
@@ -406,6 +404,8 @@ struct FocusedTaskView: View {
     @AppStorage("clockColorRed") private var clockColorRed: Double = 0.2
     @AppStorage("clockColorGreen") private var clockColorGreen: Double = 1.0
     @AppStorage("clockColorBlue") private var clockColorBlue: Double = 0.3
+    @AppStorage("useBlueClockDuringBreaks") private var useBlueClockDuringBreaks: Bool = false
+    @AppStorage("syncClockToTaskColor") private var syncClockToTaskColor: Bool = false
     @State private var isFlashing: Bool = false
 
     var body: some View {
@@ -414,12 +414,42 @@ struct FocusedTaskView: View {
             return AnyView(EmptyView())
         }
 
+        // Determine clock colors based on break status and settings
+        let isBreak = timerManager.currentTask?.isBreak ?? false
+        let isPaused = timerManager.isPaused
+
+        // Priority order:
+        // 1. Blue color for breaks (if enabled)
+        // 2. Task color sync (if enabled and not a break)
+        // 3. Default custom color from settings
+        let baseClockColor: Color
+        let baseGlowColor: Color
+
+        if isBreak && useBlueClockDuringBreaks {
+            // Use blue for breaks
+            baseClockColor = Color(red: 0.4, green: 0.8, blue: 1.0)
+            baseGlowColor = Color(red: 0.4, green: 0.8, blue: 1.0)
+        } else if syncClockToTaskColor, let currentTask = timerManager.currentTask, !currentTask.isBreak {
+            // Sync to task color (only for non-break tasks)
+            let taskColor = extractTaskColor(from: currentTask)
+            baseClockColor = taskColor
+            baseGlowColor = taskColor
+        } else {
+            // Use default custom colors from settings
+            baseClockColor = Color(red: clockColorRed, green: clockColorGreen, blue: clockColorBlue)
+            baseGlowColor = Color(red: clockGlowRed, green: clockGlowGreen, blue: clockGlowBlue)
+        }
+
+        // Dim when paused
+        let finalClockColor = isPaused ? baseClockColor.opacity(0.3) : baseClockColor
+        let finalGlowColor = isPaused ? baseGlowColor.opacity(0.3) : baseGlowColor
+
         return AnyView(
         ZStack {
             CompactTimelineView(
                 timerManager: timerManager,
-                clockColor: Color(red: clockColorRed, green: clockColorGreen, blue: clockColorBlue),
-                glowColor: Color(red: clockGlowRed, green: clockGlowGreen, blue: clockGlowBlue)
+                clockColor: finalClockColor,
+                glowColor: finalGlowColor
             )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
 
@@ -502,6 +532,25 @@ struct FocusedTaskView: View {
             return "\(Int(minutes)) minutes"
         }
     }
+
+    private func extractTaskColor(from task: TimerTask) -> Color {
+        // Get the gradient colors for this task
+        let gradients: [(Color, Color)] = [
+            (Color(red: 0.4, green: 0.5, blue: 0.85), Color(red: 0.6, green: 0.4, blue: 0.85)),
+            (Color(red: 0.65, green: 0.35, blue: 0.85), Color(red: 0.85, green: 0.4, blue: 0.7)),
+            (Color(red: 0.9, green: 0.4, blue: 0.65), Color(red: 0.95, green: 0.55, blue: 0.4)),
+            (Color(red: 0.95, green: 0.6, blue: 0.35), Color(red: 0.95, green: 0.75, blue: 0.4)),
+            (Color(red: 0.35, green: 0.75, blue: 0.5), Color(red: 0.35, green: 0.7, blue: 0.75)),
+            (Color(red: 0.3, green: 0.7, blue: 0.85), Color(red: 0.4, green: 0.55, blue: 0.85)),
+            (Color(red: 0.45, green: 0.4, blue: 0.85), Color(red: 0.6, green: 0.45, blue: 0.8)),
+            (Color(red: 0.35, green: 0.75, blue: 0.7), Color(red: 0.4, green: 0.75, blue: 0.55))
+        ]
+
+        let colorPair = gradients[task.colorIndex % gradients.count]
+
+        // Return the first (leading) color from the gradient
+        return colorPair.0
+    }
 }
 
 // MARK: - Modern Compact Timeline View
@@ -525,7 +574,7 @@ struct CompactTimelineView: View {
                         clockColor: clockColor,
                         glowColor: glowColor
                     )
-                    .frame(width: 85, alignment: .leading)
+                    .frame(width: 120, alignment: .leading)
 
                     Spacer(minLength: 4)
 

@@ -42,7 +42,7 @@ struct TimelineEditorView: View {
     @State private var showSavePipeline: Bool = false
     @State private var newPipelineName: String = ""
     @State private var lockTotalTime: Bool = false
-    @State private var breakDurationMinutes: Double = 0.0
+    @AppStorage("defaultBreakDuration") private var breakDurationMinutes: Double = 0.0
     @State private var breakDurationText: String = "0"
     @State private var useDoneByTime: Bool = false
     @State private var doneByTimeText: String = "12:00AM"
@@ -270,6 +270,12 @@ struct TimelineEditorView: View {
             if !isTotalFieldFocused {
                 let actualTotal = timerManager.tasks.reduce(0.0) { $0 + $1.durationMinutes }
                 totalMinutesText = "\(Int(actualTotal))"
+            }
+        }
+        .onChange(of: breakDurationMinutes) { newValue in
+            // Update break duration text when setting changes
+            if !isBreakFieldFocused {
+                breakDurationText = "\(Int(newValue))"
             }
         }
     }
@@ -865,13 +871,37 @@ struct TimelineSegment: View {
             .frame(width: width, height: 60)
             .shadow(color: Color.black.opacity(0.2), radius: 2, x: 0, y: 1)
             .contentShape(Rectangle()) // Define hit area without button behavior
-            .onTapGesture(count: 2) {
-                onDoubleTap()
-            }
-            .onTapGesture(count: 1) {
-                onTap()
-            }
+            .simultaneousGesture(
+                TapGesture(count: 2)
+                    .onEnded { _ in
+                        onDoubleTap()
+                    }
+            )
+            .simultaneousGesture(
+                TapGesture(count: 1)
+                    .onEnded { _ in
+                        onTap()
+                    }
+            )
             .focusable(false) // Disable focus ring
+            .overlay(alignment: .topTrailing) {
+                if isEditing {
+                    Button(action: onDelete) {
+                        ZStack {
+                            Circle()
+                                .fill(Color.black.opacity(0.5))
+                                .frame(width: deleteButtonSize, height: deleteButtonSize)
+                            Image(systemName: "xmark")
+                                .font(.system(size: deleteButtonIconSize, weight: .semibold))
+                                .foregroundColor(Color(red: 1.0, green: 0.4, blue: 0.4))
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .help("Delete task")
+                    .frame(width: deleteButtonSize, height: deleteButtonSize)
+                    .padding([.top, .trailing], deleteButtonPadding)
+                }
+            }
         }
         .frame(width: width, height: 60)
         .onAppear {
@@ -979,7 +1009,7 @@ struct TimelineSegment: View {
                                         .textFieldStyle(.plain)
                                         .font(.system(size: 13, weight: .bold))
                                         .foregroundColor(.white)
-                                        .multilineTextAlignment(.center)
+                                        .multilineTextAlignment(.trailing)
                                         .frame(width: 35)
                                         .focused($isDurationFieldFocused)
                                         .onChange(of: durationText) { newValue in
@@ -1043,58 +1073,55 @@ struct TimelineSegment: View {
 
                             // Editable duration field
                             if isEditing {
-                                VStack(spacing: 3) {
-                                    HStack(spacing: 2) {
-                                        TextField("", text: $durationText)
-                                            .textFieldStyle(.plain)
-                                            .font(.system(size: 12, weight: .bold))
-                                            .foregroundColor(.white)
-                                            .multilineTextAlignment(.center)
-                                            .frame(width: 30)
-                                            .focused($isDurationFieldFocused)
-                                            .allowsHitTesting(true)
-                                            .onChange(of: durationText) { newValue in
-                                                let filtered = newValue.filter { $0.isNumber || $0 == "." }
-                                                if filtered != newValue {
-                                                    durationText = filtered
-                                                }
-                                                if let value = Double(filtered), value >= 0.166 && value <= 120 {
-                                                    sliderValue = value
-                                                }
+                                HStack(spacing: 2) {
+                                    TextField("", text: $durationText)
+                                        .textFieldStyle(.plain)
+                                        .font(.system(size: 12, weight: .bold))
+                                        .foregroundColor(.white)
+                                        .multilineTextAlignment(.center)
+                                        .frame(width: 30)
+                                        .focused($isDurationFieldFocused)
+                                        .allowsHitTesting(true)
+                                        .onChange(of: durationText) { newValue in
+                                            let filtered = newValue.filter { $0.isNumber || $0 == "." }
+                                            if filtered != newValue {
+                                                durationText = filtered
                                             }
-                                            .onSubmit {
-                                                if let value = Double(durationText), value >= 0.166 && value <= 120 {
-                                                    onDurationChange(value, true) // true = unlock if locked
-                                                }
-                                                onTap() // Close editor
+                                            if let value = Double(filtered), value >= 0.166 && value <= 120 {
+                                                sliderValue = value
                                             }
-
-                                        Text("m")
-                                            .font(.system(size: 10, weight: .semibold))
-                                            .foregroundColor(.white.opacity(0.8))
-                                    }
-
-                                    Button(action: onDelete) {
-                                        ZStack {
-                                            Circle()
-                                                .fill(Color.black.opacity(0.7))
-                                                .frame(width: 24, height: 24)
-
-                                            Image(systemName: "trash.fill")
-                                                .font(.system(size: 11))
-                                                .foregroundColor(.red)
                                         }
-                                    }
-                                    .buttonStyle(.plain)
-                                    .help("Delete task")
+                                        .onSubmit {
+                                            if let value = Double(durationText), value >= 0.166 && value <= 120 {
+                                                onDurationChange(value, true) // true = unlock if locked
+                                            }
+                                            onTap() // Close editor
+                                        }
+
+                                    Text("m")
+                                        .font(.system(size: 10, weight: .semibold))
+                                        .foregroundColor(.white.opacity(0.8))
                                 }
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 2)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 4)
+                                        .fill(Color.white.opacity(0.25))
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 4)
+                                        .stroke(Color.white.opacity(0.6), lineWidth: 2)
+                                )
+                                .frame(maxWidth: .infinity)
                                 .allowsHitTesting(true)
                             } else {
+                                // Non-editing: show duration
                                 Text(formatDuration(task.durationMinutes))
                                     .font(.system(size: 12, weight: .bold))
                                     .foregroundColor(.white.opacity(0.9))
                             }
                         }
+                        .frame(maxWidth: .infinity)
                         .padding(6)
                     }
         }
@@ -1108,6 +1135,42 @@ struct TimelineSegment: View {
                     .stroke(isEditing ? Color.white.opacity(0.8) : Color.clear, lineWidth: isEditing ? 2 : 0)
             )
             .shadow(color: isEditing ? Color.white.opacity(0.3) : Color.clear, radius: isEditing ? 8 : 0, x: 0, y: 0)
+    }
+
+    private var deleteButtonSize: CGFloat {
+        if width < 50 {
+            return 14
+        } else if width < 80 {
+            return 16
+        } else if width < 120 {
+            return 18
+        } else {
+            return 20
+        }
+    }
+
+    private var deleteButtonIconSize: CGFloat {
+        if width < 50 {
+            return 7
+        } else if width < 80 {
+            return 8
+        } else if width < 120 {
+            return 9
+        } else {
+            return 10
+        }
+    }
+
+    private var deleteButtonPadding: CGFloat {
+        if width < 50 {
+            return 2
+        } else if width < 80 {
+            return 2.5
+        } else if width < 120 {
+            return 3
+        } else {
+            return 3
+        }
     }
 
     private var segmentColor: Color {
@@ -1125,11 +1188,12 @@ struct TimelineSegment: View {
 
     private func formatDurationNumber(_ minutes: Double) -> String {
         if minutes < 1 {
-            return String(format: "%.2f", minutes)
-        } else if minutes < 10 {
-            return String(format: "%.0f", minutes)
+            // For sub-minute, show as seconds
+            let seconds = Int(minutes * 60)
+            return "\(seconds)"
         } else {
-            return String(format: "%.0f", minutes)
+            // Round to nearest whole minute
+            return String(Int(minutes.rounded()))
         }
     }
 }
@@ -1373,7 +1437,9 @@ struct AddTaskRowView: View {
     @State private var durationText: String = "10"
     @State private var sliderValue: Double = 10.0
     @AppStorage("maxTaskDuration") private var maxTaskDuration: Double = 120
+    @AppStorage("defaultTaskDuration") private var defaultTaskDuration: Double = 10
     @State private var previousTaskCount: Int = 0
+    @Environment(\.colorScheme) var colorScheme
     private let minDuration: Double = 0.166 // 10 seconds
 
     var body: some View {
@@ -1389,7 +1455,7 @@ struct AddTaskRowView: View {
                     TextField("", text: $durationText)
                         .textFieldStyle(.plain)
                         .font(.system(size: 14, weight: .semibold, design: .monospaced))
-                        .foregroundColor(durationColor(for: sliderValue))
+                        .foregroundColor(durationColor(for: sliderValue).opacity(0.4))
                         .frame(width: 35)
                         .multilineTextAlignment(.trailing)
                         .onChange(of: durationText) { newValue in
@@ -1438,16 +1504,16 @@ struct AddTaskRowView: View {
 
                     // Duration slider
                     Capsule()
-                        .fill(durationColor(for: sliderValue))
-                        .frame(width: max(8, geometry.size.width * CGFloat((sliderValue - minDuration) / (maxTaskDuration - minDuration))), height: 8)
+                        .fill(durationColor(for: sliderValue).opacity(0.4))
+                        .frame(width: max(8, geometry.size.width * CGFloat((sliderValue - minDuration) / (maxTaskDuration - minDuration))), height: 6)
 
                     Circle()
-                        .fill(durationColor(for: sliderValue))
-                        .frame(width: 16, height: 16)
-                        .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 1)
+                        .fill(durationColor(for: sliderValue).opacity(0.6))
+                        .frame(width: 14, height: 14)
+                        .shadow(color: .black.opacity(0.15), radius: 2, x: 0, y: 1)
                         .overlay(
                             Circle()
-                                .stroke(Color.white.opacity(0.5), lineWidth: 1.5)
+                                .stroke(Color.white.opacity(0.3), lineWidth: 1.5)
                         )
                         .offset(x: max(0, min(geometry.size.width - 16, geometry.size.width * CGFloat((sliderValue - minDuration) / (maxTaskDuration - minDuration)) - 8)))
                         .gesture(
@@ -1480,7 +1546,7 @@ struct AddTaskRowView: View {
             }
             .frame(height: 16)
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, 24)
         .padding(.vertical, 10)
         .onChange(of: timerManager.tasks.count) { newCount in
             // Track when tasks are added or removed
@@ -1488,6 +1554,19 @@ struct AddTaskRowView: View {
         }
         .onAppear {
             previousTaskCount = timerManager.tasks.count
+            sliderValue = defaultTaskDuration
+            durationText = "\(Int(defaultTaskDuration))"
+        }
+        .onChange(of: defaultTaskDuration) { newValue in
+            sliderValue = newValue
+            durationText = "\(Int(newValue))"
+        }
+        .onChange(of: maxTaskDuration) { newValue in
+            // Ensure current slider value doesn't exceed new max
+            if sliderValue > newValue {
+                sliderValue = newValue
+                durationText = "\(Int(newValue))"
+            }
         }
     }
 
@@ -1495,29 +1574,33 @@ struct AddTaskRowView: View {
         let maxDuration = maxTaskDuration
         let percentage = minutes / maxDuration
 
+        // In light mode, use darker colors for better contrast
+        let isDark = colorScheme == .dark
+        let multiplier = isDark ? 1.0 : 0.6
+
         // Create smooth gradient: green -> yellow -> orange -> red
         if percentage <= 0.33 {
             // Green to Yellow
             let local = percentage / 0.33
             return Color(
-                red: local,  // 0 to 1.0
-                green: 1.0,  // stays 1.0
+                red: local * multiplier,  // 0 to 1.0 (or 0.6 in light mode)
+                green: 1.0 * multiplier,  // stays 1.0 (or 0.6 in light mode)
                 blue: 0
             )
         } else if percentage <= 0.66 {
             // Yellow to Orange
             let local = (percentage - 0.33) / 0.33
             return Color(
-                red: 1.0,
-                green: 1.0 - local * 0.5,  // 1.0 to 0.5
+                red: 1.0 * multiplier,
+                green: (1.0 - local * 0.5) * multiplier,  // 1.0 to 0.5
                 blue: 0
             )
         } else {
             // Orange to Red
             let local = (percentage - 0.66) / 0.34
             return Color(
-                red: 1.0,
-                green: 0.5 - local * 0.5,  // 0.5 to 0
+                red: 1.0 * multiplier,
+                green: (0.5 - local * 0.5) * multiplier,  // 0.5 to 0
                 blue: 0
             )
         }
@@ -1901,6 +1984,19 @@ struct ClickableTextField: NSViewRepresentable {
         textField.delegate = context.coordinator
         textField.refusesFirstResponder = false
 
+        // Set text color to adapt to appearance
+        textField.textColor = .labelColor
+
+        // Set placeholder color with better contrast
+        let placeholderAttributes: [NSAttributedString.Key: Any] = [
+            .foregroundColor: NSColor.placeholderTextColor,
+            .font: NSFont.systemFont(ofSize: 14, weight: .medium)
+        ]
+        textField.placeholderAttributedString = NSAttributedString(
+            string: placeholder,
+            attributes: placeholderAttributes
+        )
+
         // Auto-focus if requested
         if autoFocus {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
@@ -1916,11 +2012,25 @@ struct ClickableTextField: NSViewRepresentable {
             nsView.stringValue = text
         }
 
+        // Update text color to adapt to appearance changes
+        nsView.textColor = .labelColor
+
+        // Update placeholder attributes when appearance changes
+        let placeholderAttributes: [NSAttributedString.Key: Any] = [
+            .foregroundColor: NSColor.placeholderTextColor,
+            .font: NSFont.systemFont(ofSize: 14, weight: .medium)
+        ]
+        nsView.placeholderAttributedString = NSAttributedString(
+            string: placeholder,
+            attributes: placeholderAttributes
+        )
+
         // Auto-focus on first update if requested and not already focused
+        // Use asyncAfter to ensure it happens after the current update cycle completes
         if autoFocus && !context.coordinator.hasFocused && nsView.window != nil {
-            DispatchQueue.main.async {
+            context.coordinator.hasFocused = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
                 nsView.window?.makeFirstResponder(nsView)
-                context.coordinator.hasFocused = true
             }
         }
     }

@@ -386,7 +386,7 @@ class TimerManager: ObservableObject {
         if hours > 0 {
             return String(format: "%d:%02d:%02d", hours, minutes, secs)
         } else {
-            return String(format: "%d:%02d", minutes, secs)
+            return String(format: "%02d:%02d", minutes, secs)
         }
     }
 

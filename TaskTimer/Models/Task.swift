@@ -72,23 +72,27 @@ struct PipelineTask: Identifiable, Codable {
     let id: UUID
     var name: String
     var durationMinutes: Double
+    var colorIndex: Int
+    var isBreak: Bool
 
-    init(id: UUID = UUID(), name: String, durationMinutes: Double) {
+    init(id: UUID = UUID(), name: String, durationMinutes: Double, colorIndex: Int = 0, isBreak: Bool = false) {
         self.id = id
         self.name = name
         self.durationMinutes = durationMinutes
+        self.colorIndex = colorIndex
+        self.isBreak = isBreak
     }
 
     // Convert to TimerTask
     func toTimerTask() -> TimerTask {
-        return TimerTask(name: name, durationMinutes: durationMinutes)
+        return TimerTask(name: name, durationMinutes: durationMinutes, colorIndex: colorIndex, isBreak: isBreak)
     }
 }
 
 // Convert TimerTask to PipelineTask
 extension TimerTask {
     func toPipelineTask() -> PipelineTask {
-        return PipelineTask(name: name, durationMinutes: durationMinutes)
+        return PipelineTask(name: name, durationMinutes: durationMinutes, colorIndex: colorIndex, isBreak: isBreak)
     }
 }
 
