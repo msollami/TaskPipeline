@@ -567,16 +567,16 @@ struct CompactTimelineView: View {
         } else {
             VStack(spacing: 12) {
                 // Top row: Clock, task name, and task counter
-                HStack(alignment: .center, spacing: 8) {
+                HStack(alignment: .center, spacing: 12) {
                     // Left: Clock (fixed width to prevent shifting)
                     DigitalClockView(
                         timeString: timerManager.formattedTime(timerManager.remainingSeconds),
                         clockColor: clockColor,
                         glowColor: glowColor
                     )
-                    .frame(width: 120, alignment: .leading)
+                    .frame(width: 105, alignment: .leading)
 
-                    Spacer(minLength: 4)
+                    Spacer(minLength: 8)
 
                     // Center: Current task name with scrolling (wider area) or Paused indicator
                     if timerManager.isPaused {
@@ -589,7 +589,7 @@ struct CompactTimelineView: View {
                                 .foregroundColor(.orange)
                         }
                         .shadow(color: .black.opacity(0.3), radius: 2, x: 0, y: 1)
-                        .frame(minWidth: 250, maxWidth: .infinity)
+                        .frame(minWidth: 200, maxWidth: .infinity)
                         .frame(height: 30)
                     } else if let currentTask = timerManager.currentTask {
                         if currentTask.isBreak {
@@ -600,7 +600,7 @@ struct CompactTimelineView: View {
                                 getRandomQuote: getRandomBreakQuote
                             )
                             .shadow(color: Color(red: 0.4, green: 0.8, blue: 1.0).opacity(0.5), radius: 4, x: 0, y: 2)
-                            .frame(minWidth: 250, maxWidth: .infinity)
+                            .frame(minWidth: 200, maxWidth: .infinity)
                             .frame(height: 30)
                         } else {
                             AlwaysScrollingTextView(
@@ -609,12 +609,12 @@ struct CompactTimelineView: View {
                                 foregroundColor: .primary
                             )
                             .shadow(color: .black.opacity(0.3), radius: 2, x: 0, y: 1)
-                            .frame(minWidth: 250, maxWidth: .infinity)
+                            .frame(minWidth: 200, maxWidth: .infinity)
                             .frame(height: 30)
                         }
                     }
 
-                    Spacer(minLength: 4)
+                    Spacer(minLength: 8)
 
                     // Right: Task counter and total time remaining
                     VStack(alignment: .trailing, spacing: 3) {
