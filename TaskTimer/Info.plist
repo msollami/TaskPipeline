@@ -26,5 +26,9 @@
 	<string>Main</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+	<key>NSUserNotificationUsageDescription</key>
+	<string>TaskTimer sends notifications when tasks complete to help you stay on track.</string>
+	<key>NSHumanReadableCopyright</key>
+	<string>Copyright © 2024 Michael Sollami. All rights reserved.</string>
 </dict>
 </plist>
