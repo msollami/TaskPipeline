@@ -11,23 +11,27 @@
 ### 1. Create Apple Developer Account (In Progress)
 - Go to: https://developer.apple.com/programs/enroll/
 - Choose "Individual" enrollment
-- Use a personal Apple ID (not work email)
+- Use Apple ID associated with: mike@sollami.ai
 - Pay $99/year
 - **Wait 24-48 hours for approval**
 
 ### 2. Host Privacy Policy Online
-You need a public URL for your privacy policy. Options:
-- **Option A**: Create a GitHub Pages site (free)
+You need a public URL for your privacy policy. **Recommended options:**
+
+- **Option A**: Host on sollami.ai domain (BEST)
+  - Create page at: `https://sollami.ai/tasktimer/privacy` or `https://sollami.ai/privacy/tasktimer`
+  - Professional and matches your email domain
+  - Full control
+
+- **Option B**: Create a GitHub Pages site (free)
   - Create a new repo: `tasktimer-privacy`
   - Enable GitHub Pages in settings
   - Upload PRIVACY_POLICY.md
   - URL will be: `https://yourusername.github.io/tasktimer-privacy`
 
-- **Option B**: Use a personal website if you have one
-
 - **Option C**: Use a simple hosting service (Notion, Google Sites, etc.)
 
-**Action**: Choose option and create public URL
+**Action**: Upload PRIVACY_POLICY.md to sollami.ai and get public URL
 
 ### 3. Create App Icons
 
@@ -76,7 +80,7 @@ You need a public URL for your privacy policy. Options:
 Once your Apple Developer account is approved:
 
 1. In Xcode, go to project settings → Signing & Capabilities
-2. Change Bundle Identifier to: `com.michaelsollami.tasktimer` (or your choice)
+2. Change Bundle Identifier to: `ai.sollami.tasktimer` (recommended - matches your domain)
 3. Select your Team from the dropdown
 4. Xcode will automatically create necessary profiles
 
@@ -186,10 +190,10 @@ Common issues:
 
 ## 📞 NEXT ACTIONS FOR YOU
 
-1. [ ] Sign up for Apple Developer Program
-2. [ ] Choose a bundle identifier: ________________
-3. [ ] Decide on privacy policy hosting (GitHub Pages?)
-4. [ ] Create or commission app icon
-5. [ ] Take screenshots
+1. [ ] Sign up for Apple Developer Program (use mike@sollami.ai)
+2. [ ] Bundle identifier will be: `ai.sollami.tasktimer`
+3. [ ] Host privacy policy at: `https://sollami.ai/tasktimer/privacy`
+4. [ ] Create or commission app icon (1024x1024px)
+5. [ ] Take 3-5 screenshots of the app
 
 **Let me know when your account is approved and I'll help with the technical submission!**

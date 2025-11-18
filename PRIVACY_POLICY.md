@@ -37,7 +37,7 @@ We may update this privacy policy from time to time. Any changes will be posted 
 
 ## Contact
 If you have questions about this privacy policy, please contact:
-michael.sollami@bain.com
+mike@sollami.ai
 
 ## Your Rights
 You have the right to:
