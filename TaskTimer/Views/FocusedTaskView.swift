@@ -405,7 +405,7 @@ struct FocusedTaskView: View {
     @AppStorage("clockColorGreen") private var clockColorGreen: Double = 1.0
     @AppStorage("clockColorBlue") private var clockColorBlue: Double = 0.3
     @AppStorage("useBlueClockDuringBreaks") private var useBlueClockDuringBreaks: Bool = false
-    @AppStorage("syncClockToTaskColor") private var syncClockToTaskColor: Bool = false
+    @AppStorage("syncClockToTaskColor") private var syncClockToTaskColor: Bool = true
     @State private var isFlashing: Bool = false
 
     var body: some View {

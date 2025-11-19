@@ -1494,6 +1494,32 @@ struct AddTaskRowView: View {
             .padding(.vertical, 8)
             .frame(height: 40)
 
+            // Quick select duration buttons
+            HStack(spacing: 8) {
+                ForEach([10, 15, 20, 30, 40], id: \.self) { duration in
+                    Button(action: {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            sliderValue = Double(duration)
+                            durationText = "\(duration)"
+                        }
+                    }) {
+                        Text("\(duration)m")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(sliderValue == Double(duration) ? .white : .secondary)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 4)
+                            .background(
+                                sliderValue == Double(duration)
+                                    ? Color.accentColor
+                                    : Color.secondary.opacity(0.15)
+                            )
+                            .cornerRadius(4)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.bottom, 4)
+
             // Bottom row: Visual slider bar with draggable thumb
             GeometryReader { geometry in
                 ZStack(alignment: .leading) {
@@ -1641,9 +1667,8 @@ struct AddTaskRowView: View {
             timerManager.tasks[index].proportion = task.durationMinutes / newTotal
         }
 
+        // Only reset task name, keep duration sticky
         taskName = ""
-        durationText = "10"
-        sliderValue = 10.0
     }
 }
 

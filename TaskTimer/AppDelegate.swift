@@ -57,7 +57,7 @@ struct SettingsView: View {
     @AppStorage("defaultTaskDuration") private var defaultTaskDuration: Double = 10
     @AppStorage("defaultBreakDuration") private var defaultBreakDuration: Double = 0
     @AppStorage("useBlueClockDuringBreaks") private var useBlueClockDuringBreaks: Bool = false
-    @AppStorage("syncClockToTaskColor") private var syncClockToTaskColor: Bool = false
+    @AppStorage("syncClockToTaskColor") private var syncClockToTaskColor: Bool = true
 
     @State private var maxDurationText: String = "120"
     @State private var defaultTaskText: String = "10"
@@ -256,7 +256,7 @@ struct SettingsView: View {
                     clockColorBlue = 0.3
                     clockColor = Color(red: 0.2, green: 1.0, blue: 0.3)
                     useBlueClockDuringBreaks = false
-                    syncClockToTaskColor = false
+                    syncClockToTaskColor = true
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
@@ -361,7 +361,7 @@ struct AboutView: View {
                 Image(nsImage: appIcon)
                     .resizable()
                     .frame(width: 128, height: 128)
-                    .cornerRadius(22)
+                    .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
                     .shadow(color: .black.opacity(0.2), radius: 10, x: 0, y: 4)
             }
 
@@ -389,7 +389,8 @@ struct AboutView: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
-                    .frame(maxWidth: 280)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: 320)
             }
             .padding(.vertical, 4)
 
