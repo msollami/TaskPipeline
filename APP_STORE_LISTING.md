@@ -1,14 +1,14 @@
-# TaskTimer - App Store Listing
+# TaskPipeline - App Store Listing
 
 ## App Name
-TaskTimer
+TaskPipeline
 
 ## Subtitle (30 characters max)
 Visual time management tool
 
 ## Description
 
-Stay focused and manage your time visually with TaskTimer, a beautiful menu bar timer app designed for productivity.
+Stay focused and manage your time visually with TaskPipeline, a beautiful menu bar timer app designed for productivity.
 
 **KEY FEATURES:**
 
@@ -28,12 +28,12 @@ Stay focused and manage your time visually with TaskTimer, a beautiful menu bar 
 • Anyone wanting better time awareness
 
 **FOCUSED EXPERIENCE:**
-When your timer runs, TaskTimer displays a clean, focused view showing your current task, remaining time, and progress through your session. The app sits quietly in your menu bar until you need it.
+When your timer runs, TaskPipeline displays a clean, focused view showing your current task, remaining time, and progress through your session. The app sits quietly in your menu bar until you need it.
 
 **PRIVACY FIRST:**
 All your data stays on your Mac. No accounts, no tracking, no cloud sync required.
 
-Start managing your time visually today with TaskTimer.
+Start managing your time visually today with TaskPipeline.
 
 ## Keywords (100 characters max, comma-separated)
 timer,pomodoro,productivity,focus,time management,task,menu bar,breaks,study,work
@@ -42,7 +42,7 @@ timer,pomodoro,productivity,focus,time management,task,menu bar,breaks,study,wor
 Productivity
 
 ## Support URL
-https://github.com/msollami/TaskTimer
+https://github.com/msollami/TaskPipeline
 
 ## App Store Screenshots Needed
 1. Timeline editor showing multiple tasks

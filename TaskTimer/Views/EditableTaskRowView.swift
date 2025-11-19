@@ -1,6 +1,6 @@
 //
 //  EditableTaskRowView.swift
-//  TaskTimer
+//  TaskPipeline
 //
 //  Editable task row with draggable duration slider
 //

@@ -1,4 +1,4 @@
-# TaskTimer - Complete App Store Submission Guide
+# TaskPipeline - Complete App Store Submission Guide
 
 ## ✅ COMPLETED STEPS
 
@@ -92,7 +92,7 @@ Once developer account is active:
 2. Click "My Apps" → "+" → "New App"
 3. Fill in:
    - **Platform**: macOS
-   - **Name**: TaskTimer
+   - **Name**: TaskPipeline
    - **Primary Language**: English (U.S.)
    - **Bundle ID**: (select from dropdown - will appear after bundle ID change)
    - **SKU**: tasktimer-001
@@ -100,7 +100,7 @@ Once developer account is active:
 
 4. In the app page, fill out:
    - **App Information**:
-     - Name: TaskTimer
+     - Name: TaskPipeline
      - Subtitle: Visual time management tool
      - Category: Productivity
      - Privacy Policy URL: (your hosted URL from step 2)
@@ -113,13 +113,13 @@ Once developer account is active:
      - Screenshots: Upload your 3-5 screenshots
      - Description: Copy from APP_STORE_LISTING.md
      - Keywords: timer,pomodoro,productivity,focus,time management
-     - Support URL: https://github.com/msollami/TaskTimer
+     - Support URL: https://github.com/msollami/TaskPipeline
      - Marketing URL: (optional)
 
    - **App Review Information**:
      - Email: your email
      - Phone: your phone
-     - Notes: "TaskTimer is a simple, local-only timer app. No server components. Easy to test - just add a task and start the timer."
+     - Notes: "TaskPipeline is a simple, local-only timer app. No server components. Easy to test - just add a task and start the timer."
 
 ### 7. Create Archive & Submit
 

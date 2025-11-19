@@ -1,6 +1,6 @@
 //
 //  Task.swift
-//  TaskTimer
+//  TaskPipeline
 //
 //  Data model for timer tasks
 //

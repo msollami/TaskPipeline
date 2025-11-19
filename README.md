@@ -1,4 +1,4 @@
-# Task Timer
+# TaskPipeline
 
 A native macOS menubar app for managing sequential countdown timers with a focus-driven interface. Create a pipeline of tasks, then enter "focus mode" to work through them one at a time with prominent reminders of what you should be working on.
 
@@ -108,7 +108,7 @@ While in the app:
 ## Project Structure
 
 ```
-TaskTimer/
+TaskPipeline/
 ├── TaskTimerApp.swift              # Main app entry point
 ├── AppDelegate.swift               # Menubar app lifecycle
 ├── Models/

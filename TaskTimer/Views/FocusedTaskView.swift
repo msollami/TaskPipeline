@@ -1,6 +1,6 @@
 //
 //  FocusedTaskView.swift
-//  TaskTimer
+//  TaskPipeline
 //
 //  Compact focused view with timeline-based interface
 //

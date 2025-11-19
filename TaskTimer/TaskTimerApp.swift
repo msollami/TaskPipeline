@@ -1,6 +1,6 @@
 //
 //  TaskTimerApp.swift
-//  TaskTimer
+//  TaskPipeline
 //
 //  A macOS menubar app for managing sequential countdown timers
 //

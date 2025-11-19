@@ -1,6 +1,6 @@
 //
 //  AppDelegate.swift
-//  TaskTimer
+//  TaskPipeline
 //
 //  Manages menubar app lifecycle
 //
@@ -367,7 +367,7 @@ struct AboutView: View {
 
             // App Name and Version
             VStack(spacing: 4) {
-                Text("TaskTimer")
+                Text("TaskPipeline")
                     .font(.system(size: 24, weight: .semibold))
 
                 if let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String,
@@ -385,7 +385,7 @@ struct AboutView: View {
                     .fontWeight(.medium)
                     .foregroundColor(.primary)
 
-                Text("TaskTimer helps you manage your time effectively with visual task pipelines, customizable breaks, and focused work sessions.")
+                Text("TaskPipeline helps you manage your time effectively with visual task pipelines, customizable breaks, and focused work sessions.")
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
@@ -519,7 +519,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func showMenu() {
         let menu = NSMenu()
-        menu.addItem(NSMenuItem(title: "About TaskTimer", action: #selector(openAbout), keyEquivalent: ""))
+        menu.addItem(NSMenuItem(title: "About TaskPipeline", action: #selector(openAbout), keyEquivalent: ""))
         menu.addItem(NSMenuItem.separator())
         menu.addItem(NSMenuItem(title: "Settings...", action: #selector(openSettings), keyEquivalent: ","))
         menu.addItem(NSMenuItem.separator())
@@ -538,7 +538,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             let hostingController = NSHostingController(rootView: settingsView)
 
             let window = NSWindow(contentViewController: hostingController)
-            window.title = "Task Timer Settings"
+            window.title = "TaskPipeline Settings"
             window.styleMask = [NSWindow.StyleMask.titled, NSWindow.StyleMask.closable]
             window.center()
             window.setFrameAutosaveName("Settings")
@@ -557,7 +557,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             let hostingController = NSHostingController(rootView: aboutView)
 
             let window = NSWindow(contentViewController: hostingController)
-            window.title = "About TaskTimer"
+            window.title = "About TaskPipeline"
             window.styleMask = [NSWindow.StyleMask.titled, NSWindow.StyleMask.closable]
             window.center()
             window.setFrameAutosaveName("About")

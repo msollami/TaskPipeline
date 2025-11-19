@@ -1,6 +1,6 @@
 //
 //  AddTaskView.swift
-//  TaskTimer
+//  TaskPipeline
 //
 //  Sheet view for adding new tasks
 //

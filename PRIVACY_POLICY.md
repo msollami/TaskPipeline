@@ -1,12 +1,12 @@
-# Privacy Policy for TaskTimer
+# Privacy Policy for TaskPipeline
 
 **Last Updated: November 14, 2024**
 
 ## Overview
-TaskTimer ("the App") is committed to protecting your privacy. This policy explains how we handle your information.
+TaskPipeline ("the App") is committed to protecting your privacy. This policy explains how we handle your information.
 
 ## Data Collection
-TaskTimer does **NOT** collect, transmit, or share any personal information. The App operates entirely on your local device.
+TaskPipeline does **NOT** collect, transmit, or share any personal information. The App operates entirely on your local device.
 
 ## Information Stored Locally
 The following data is stored locally on your Mac using standard macOS UserDefaults:
@@ -22,15 +22,15 @@ This data:
 - Can be deleted by removing the application
 
 ## Permissions
-TaskTimer requests the following system permissions:
+TaskPipeline requests the following system permissions:
 - **Notifications**: To alert you when tasks complete (optional)
 - **App Sandbox**: The app runs in Apple's security sandbox for your protection
 
 ## Third-Party Services
-TaskTimer does not use any third-party analytics, advertising, or tracking services.
+TaskPipeline does not use any third-party analytics, advertising, or tracking services.
 
 ## Children's Privacy
-TaskTimer does not knowingly collect information from children under 13. The app is suitable for all ages.
+TaskPipeline does not knowingly collect information from children under 13. The app is suitable for all ages.
 
 ## Changes to This Policy
 We may update this privacy policy from time to time. Any changes will be posted in the App Store listing.
@@ -41,9 +41,9 @@ mike@sollami.ai
 
 ## Your Rights
 You have the right to:
-- Delete all app data by uninstalling TaskTimer
+- Delete all app data by uninstalling TaskPipeline
 - Request information about what data is stored (see "Information Stored Locally" above)
 
 ---
 
-**In Summary**: TaskTimer stores your tasks and preferences locally on your Mac. Nothing is sent to the internet. Your data is yours alone.
+**In Summary**: TaskPipeline stores your tasks and preferences locally on your Mac. Nothing is sent to the internet. Your data is yours alone.

@@ -1,6 +1,6 @@
 //
 //  TimerManager.swift
-//  TaskTimer
+//  TaskPipeline
 //
 //  Manages timer state, countdown logic, and sequential task progression
 //

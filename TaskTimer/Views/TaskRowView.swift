@@ -1,6 +1,6 @@
 //
 //  TaskRowView.swift
-//  TaskTimer
+//  TaskPipeline
 //
 //  Individual task row with progress indicator
 //

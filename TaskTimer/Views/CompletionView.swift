@@ -1,6 +1,6 @@
 //
 //  CompletionView.swift
-//  TaskTimer
+//  TaskPipeline
 //
 //  Session completion view
 //

@@ -1,6 +1,6 @@
 //
 //  ContentView.swift
-//  TaskTimer
+//  TaskPipeline
 //
 //  Main view that switches between edit and running modes
 //
