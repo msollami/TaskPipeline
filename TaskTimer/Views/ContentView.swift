@@ -58,6 +58,30 @@ struct TimelineEditorView: View {
                 Text("Task Pipeline")
                     .font(.system(size: 20, weight: .semibold, design: .rounded))
 
+                // Menu button with Settings, About, and Quit
+                Menu {
+                    Button("Settings...") {
+                        NotificationCenter.default.post(name: NSNotification.Name("OpenSettings"), object: nil)
+                    }
+
+                    Button("About TaskPipeline") {
+                        NotificationCenter.default.post(name: NSNotification.Name("OpenAbout"), object: nil)
+                    }
+
+                    Divider()
+
+                    Button("Quit TaskPipeline") {
+                        NSApplication.shared.terminate(nil)
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(.secondary)
+                }
+                .menuStyle(.borderlessButton)
+                .frame(width: 24, height: 24)
+                .help("Menu")
+
                 Spacer()
 
                 // Right: Total time control

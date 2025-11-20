@@ -449,6 +449,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
+        // Register for notification center events
+        NotificationCenter.default.addObserver(self, selector: #selector(openSettings), name: NSNotification.Name("OpenSettings"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(openAbout), name: NSNotification.Name("OpenAbout"), object: nil)
+
         // Create the status item in the menu bar
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
 
