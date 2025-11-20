@@ -53,8 +53,8 @@ struct TimelineEditorView: View {
     var body: some View {
         VStack(spacing: 0) {
             // Header
-            HStack(alignment: .center, spacing: 16) {
-                // Left: Title
+            HStack(alignment: .center, spacing: 12) {
+                // Title
                 Text("Task Pipeline")
                     .font(.system(size: 20, weight: .semibold, design: .rounded))
 
@@ -74,12 +74,13 @@ struct TimelineEditorView: View {
                         NSApplication.shared.terminate(nil)
                     }
                 } label: {
-                    Image(systemName: "ellipsis.circle")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(.secondary)
+                    Image(systemName: "ellipsis")
+                        .font(.system(size: 14))
+                        .foregroundColor(.secondary.opacity(0.7))
                 }
                 .menuStyle(.borderlessButton)
-                .frame(width: 24, height: 24)
+                .menuIndicator(.hidden)
+                .fixedSize()
                 .help("Menu")
 
                 Spacer()
