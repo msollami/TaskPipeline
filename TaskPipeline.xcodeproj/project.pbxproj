@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		A1000001 /* TaskTimerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000011 /* TaskTimerApp.swift */; };
+		A1000001 /* TaskPipelineApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000011 /* TaskPipelineApp.swift */; };
 		A1000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000012 /* ContentView.swift */; };
 		A1000003 /* TaskRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000013 /* TaskRowView.swift */; };
 		A1000004 /* AddTaskView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000014 /* AddTaskView.swift */; };
@@ -22,7 +22,7 @@
 
 /* Begin PBXFileReference section */
 		A1000008 /* TaskPipeline.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TaskPipeline.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		A1000011 /* TaskTimerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskTimerApp.swift; sourceTree = "<group>"; };
+		A1000011 /* TaskPipelineApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskPipelineApp.swift; sourceTree = "<group>"; };
 		A1000012 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		A1000013 /* TaskRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskRowView.swift; sourceTree = "<group>"; };
 		A1000014 /* AddTaskView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddTaskView.swift; sourceTree = "<group>"; };
@@ -31,7 +31,7 @@
 		A1000017 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A1000018 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A1000034 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
-		A1000035 /* TaskTimer.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TaskTimer.entitlements; sourceTree = "<group>"; };
+		A1000035 /* TaskPipeline.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TaskPipeline.entitlements; sourceTree = "<group>"; };
 		A1000037 /* FocusedTaskView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusedTaskView.swift; sourceTree = "<group>"; };
 		A1000039 /* EditableTaskRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditableTaskRowView.swift; sourceTree = "<group>"; };
 		A1000041 /* CompletionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompletionView.swift; sourceTree = "<group>"; };
@@ -51,7 +51,7 @@
 		A1000010 = {
 			isa = PBXGroup;
 			children = (
-				A1000020 /* TaskTimer */,
+				A1000020 /* TaskPipeline */,
 				A1000019 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -64,18 +64,18 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		A1000020 /* TaskTimer */ = {
+		A1000020 /* TaskPipeline */ = {
 			isa = PBXGroup;
 			children = (
-				A1000011 /* TaskTimerApp.swift */,
+				A1000011 /* TaskPipelineApp.swift */,
 				A1000034 /* AppDelegate.swift */,
 				A1000021 /* Views */,
 				A1000022 /* Models */,
 				A1000017 /* Assets.xcassets */,
 				A1000018 /* Info.plist */,
-				A1000035 /* TaskTimer.entitlements */,
+				A1000035 /* TaskPipeline.entitlements */,
 			);
-			path = TaskTimer;
+			path = TaskPipeline;
 			sourceTree = "<group>";
 		};
 		A1000021 /* Views */ = {
@@ -103,9 +103,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		A1000023 /* TaskTimer */ = {
+		A1000023 /* TaskPipeline */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = A1000024 /* Build configuration list for PBXNativeTarget "TaskTimer" */;
+			buildConfigurationList = A1000024 /* Build configuration list for PBXNativeTarget "TaskPipeline" */;
 			buildPhases = (
 				A1000025 /* Sources */,
 				A1000009 /* Frameworks */,
@@ -115,8 +115,8 @@
 			);
 			dependencies = (
 			);
-			name = TaskTimer;
-			productName = TaskTimer;
+			name = TaskPipeline;
+			productName = TaskPipeline;
 			productReference = A1000008 /* TaskPipeline.app */;
 			productType = "com.apple.product-type.application";
 		};
@@ -135,7 +135,7 @@
 					};
 				};
 			};
-			buildConfigurationList = A1000028 /* Build configuration list for PBXProject "TaskTimer" */;
+			buildConfigurationList = A1000028 /* Build configuration list for PBXProject "TaskPipeline" */;
 			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -148,7 +148,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				A1000023 /* TaskTimer */,
+				A1000023 /* TaskPipeline */,
 			);
 		};
 /* End PBXProject section */
@@ -169,7 +169,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A1000001 /* TaskTimerApp.swift in Sources */,
+				A1000001 /* TaskPipelineApp.swift in Sources */,
 				A1000033 /* AppDelegate.swift in Sources */,
 				A1000002 /* ContentView.swift in Sources */,
 				A1000036 /* FocusedTaskView.swift in Sources */,
@@ -315,7 +315,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
-				CODE_SIGN_ENTITLEMENTS = TaskTimer/TaskTimer.entitlements;
+				CODE_SIGN_ENTITLEMENTS = TaskPipeline/TaskPipeline.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
@@ -326,7 +326,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = TaskTimer/Info.plist;
+				INFOPLIST_FILE = TaskPipeline/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = TaskPipeline;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_LSUIElement = YES;
@@ -351,7 +351,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
-				CODE_SIGN_ENTITLEMENTS = TaskTimer/TaskTimer.entitlements;
+				CODE_SIGN_ENTITLEMENTS = TaskPipeline/TaskPipeline.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
@@ -362,7 +362,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = TaskTimer/Info.plist;
+				INFOPLIST_FILE = TaskPipeline/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = TaskPipeline;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_LSUIElement = YES;
@@ -384,7 +384,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		A1000024 /* Build configuration list for PBXNativeTarget "TaskTimer" */ = {
+		A1000024 /* Build configuration list for PBXNativeTarget "TaskPipeline" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				A1000031 /* Debug */,
@@ -393,7 +393,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		A1000028 /* Build configuration list for PBXProject "TaskTimer" */ = {
+		A1000028 /* Build configuration list for PBXProject "TaskPipeline" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				A1000029 /* Debug */,

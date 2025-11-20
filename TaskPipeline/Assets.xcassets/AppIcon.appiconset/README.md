@@ -15,7 +15,7 @@ This folder requires the following icon sizes for macOS:
 - `icon_512x512@2x.png` - 1024×1024 pixels
 
 ## Design Suggestions:
-For a TaskTimer app, consider:
+For a TaskPipeline app, consider:
 - A clock or timer icon
 - Gradient colors matching your app's theme
 - Simple, recognizable design

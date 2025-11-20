@@ -1,5 +1,5 @@
 //
-//  TaskTimerApp.swift
+//  TaskPipelineApp.swift
 //  TaskPipeline
 //
 //  A macOS menubar app for managing sequential countdown timers
@@ -8,7 +8,7 @@
 import SwiftUI
 
 @main
-struct TaskTimerApp: App {
+struct TaskPipelineApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     var body: some Scene {

@@ -65,7 +65,7 @@ Click "Start Pipeline" to enter focus mode. The interface transforms to show:
 ### Building from Source
 
 1. Clone or download this repository
-2. Open `TaskTimer.xcodeproj` in Xcode
+2. Open `TaskPipeline.xcodeproj` in Xcode
 3. Build and run the project (⌘R)
 
 The app will appear in your menubar.
@@ -109,7 +109,7 @@ While in the app:
 
 ```
 TaskPipeline/
-├── TaskTimerApp.swift              # Main app entry point
+├── TaskPipelineApp.swift           # Main app entry point
 ├── AppDelegate.swift               # Menubar app lifecycle
 ├── Models/
 │   ├── Task.swift                 # Task data model
