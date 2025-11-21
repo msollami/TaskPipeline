@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaskPipeline - Focus on What Matters</title>
+    <meta name="description" content="A native macOS menubar app for managing sequential countdown timers with visual task pipelines and focused work sessions.">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --purple: #8B5CF6;
+            --pink: #EC4899;
+            --blue: #3B82F6;
+            --cyan: #06B6D4;
+            --green: #10B981;
+            --orange: #F59E0B;
+            --dark-bg: #1a1a1a;
+            --card-bg: #2a2a2a;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: #fff;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d1b3d 100%);
+            min-height: 100vh;
+        }
+
+        header {
+            padding: 60px 20px;
+            text-align: center;
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(236, 72, 153, 0.1) 100%);
+        }
+
+        .logo {
+            width: 100px;
+            height: 100px;
+            margin: 0 auto 30px;
+            background: linear-gradient(135deg, var(--purple) 0%, var(--pink) 100%);
+            border-radius: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 40px rgba(139, 92, 246, 0.3);
+        }
+
+        .logo svg {
+            width: 60px;
+            height: 60px;
+            fill: white;
+        }
+
+        h1 {
+            font-size: 56px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, var(--purple) 0%, var(--pink) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .tagline {
+            font-size: 28px;
+            color: #bbb;
+            margin-bottom: 40px;
+            font-weight: 400;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(135deg, var(--blue) 0%, var(--purple) 100%);
+            color: white;
+            padding: 18px 40px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-size: 18px;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 20px rgba(59, 130, 246, 0.4);
+        }
+
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 30px rgba(59, 130, 246, 0.6);
+        }
+
+        .system-req {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #888;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 80px 20px;
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+            margin-bottom: 80px;
+        }
+
+        .feature {
+            background: var(--card-bg);
+            padding: 40px 30px;
+            border-radius: 20px;
+            text-align: center;
+            transition: transform 0.3s, box-shadow 0.3s;
+            border: 1px solid rgba(139, 92, 246, 0.2);
+        }
+
+        .feature:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 40px rgba(139, 92, 246, 0.3);
+        }
+
+        .feature-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+            display: block;
+        }
+
+        .feature h3 {
+            font-size: 22px;
+            margin-bottom: 15px;
+            color: #fff;
+        }
+
+        .feature p {
+            font-size: 16px;
+            color: #bbb;
+            line-height: 1.6;
+        }
+
+        .screenshots {
+            margin: 80px 0;
+        }
+
+        .screenshots h2 {
+            text-align: center;
+            font-size: 42px;
+            margin-bottom: 50px;
+            background: linear-gradient(135deg, var(--cyan) 0%, var(--blue) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .screenshot-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 40px;
+        }
+
+        .screenshot-item {
+            position: relative;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 10px 50px rgba(0, 0, 0, 0.5);
+            transition: transform 0.3s;
+        }
+
+        .screenshot-item:hover {
+            transform: scale(1.02);
+        }
+
+        .screenshot-item img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .gradient-bar {
+            height: 4px;
+            background: linear-gradient(90deg,
+                var(--purple) 0%,
+                var(--pink) 25%,
+                var(--blue) 50%,
+                var(--cyan) 75%,
+                var(--green) 100%
+            );
+            margin: 80px 0;
+        }
+
+        footer {
+            text-align: center;
+            padding: 60px 20px;
+            background: rgba(0, 0, 0, 0.3);
+            color: #888;
+        }
+
+        footer p {
+            margin: 10px 0;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 42px;
+            }
+
+            .tagline {
+                font-size: 22px;
+            }
+
+            .screenshot-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .features {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/>
+            </svg>
+        </div>
+
+        <h1>TaskPipeline</h1>
+        <p class="tagline">Focus on what matters</p>
+
+        <a href="https://apps.apple.com/app/taskpipeline/idXXXXXXXXXX" class="cta-button">
+            Download on the Mac App Store
+        </a>
+
+        <p class="system-req">Requires macOS 13.0 (Ventura) or later</p>
+    </header>
+
+    <div class="container">
+        <section class="features">
+            <div class="feature">
+                <span class="feature-icon">⏱️</span>
+                <h3>Sequential Timers</h3>
+                <p>Create a pipeline of tasks that automatically advance when time expires. Stay in the flow.</p>
+            </div>
+
+            <div class="feature">
+                <span class="feature-icon">🎯</span>
+                <h3>Focus Mode</h3>
+                <p>Prominent display shows exactly what you should be working on right now. No distractions.</p>
+            </div>
+
+            <div class="feature">
+                <span class="feature-icon">🎨</span>
+                <h3>Visual Timeline</h3>
+                <p>See your entire task pipeline with intuitive drag-and-drop editing. Beautiful and functional.</p>
+            </div>
+
+            <div class="feature">
+                <span class="feature-icon">☕</span>
+                <h3>Smart Breaks</h3>
+                <p>Automatically insert breaks between tasks to maintain peak productivity throughout your day.</p>
+            </div>
+        </section>
+
+        <div class="gradient-bar"></div>
+
+        <section class="screenshots">
+            <h2>See it in action</h2>
+            <div class="screenshot-grid">
+                <div class="screenshot-item">
+                    <img src="screenshots/screenshot-1.png" alt="TaskPipeline save pipeline dialog">
+                </div>
+                <div class="screenshot-item">
+                    <img src="screenshots/screenshot-2.png" alt="TaskPipeline session complete view">
+                </div>
+                <div class="screenshot-item">
+                    <img src="screenshots/screenshot-3.png" alt="TaskPipeline timeline editor">
+                </div>
+                <div class="screenshot-item">
+                    <img src="screenshots/screenshot-4.png" alt="TaskPipeline focused task view">
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <footer>
+        <p><strong>TaskPipeline</strong></p>
+        <p>Created by Michael Sollami</p>
+        <p>&copy; 2025 All rights reserved</p>
+    </footer>
+</body>
+</html>
