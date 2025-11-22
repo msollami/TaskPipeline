@@ -2038,9 +2038,9 @@ struct ClickableTextField: NSViewRepresentable {
         textField.textColor = .labelColor
 
         // Set placeholder color with better contrast for all backgrounds
-        // Use labelColor with opacity for visibility on any background
+        // Use higher opacity (0.7) for visibility on gradient backgrounds
         let placeholderAttributes: [NSAttributedString.Key: Any] = [
-            .foregroundColor: NSColor.labelColor.withAlphaComponent(0.5),
+            .foregroundColor: NSColor.labelColor.withAlphaComponent(0.7),
             .font: NSFont.systemFont(ofSize: 14, weight: .medium)
         ]
         textField.placeholderAttributedString = NSAttributedString(
@@ -2067,8 +2067,9 @@ struct ClickableTextField: NSViewRepresentable {
         nsView.textColor = .labelColor
 
         // Update placeholder attributes when appearance changes
+        // Use higher opacity (0.7) for better visibility on gradient backgrounds
         let placeholderAttributes: [NSAttributedString.Key: Any] = [
-            .foregroundColor: NSColor.placeholderTextColor,
+            .foregroundColor: NSColor.labelColor.withAlphaComponent(0.7),
             .font: NSFont.systemFont(ofSize: 14, weight: .medium)
         ]
         nsView.placeholderAttributedString = NSAttributedString(
