@@ -10,6 +10,11 @@ import SwiftUI
 struct CompletionView: View {
     @ObservedObject var timerManager: TimerManager
 
+    // Better orange color with more contrast for light mode
+    private var skipColor: Color {
+        Color(red: 0.9, green: 0.5, blue: 0.0) // Darker orange for better visibility
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             // Compact header
@@ -19,12 +24,12 @@ struct CompletionView: View {
                     // Partial completion - show warning icon
                     ZStack {
                         Circle()
-                            .fill(Color.orange.opacity(0.15))
+                            .fill(skipColor.opacity(0.15))
                             .frame(width: 40, height: 40)
 
                         Image(systemName: "exclamationmark.triangle.fill")
                             .font(.system(size: 24))
-                            .foregroundColor(.orange)
+                            .foregroundColor(skipColor)
                     }
                 } else {
                     // Full completion - show success icon
@@ -53,10 +58,10 @@ struct CompletionView: View {
                             HStack(spacing: 3) {
                                 Image(systemName: "forward.circle.fill")
                                     .font(.system(size: 10))
-                                    .foregroundColor(.orange)
+                                    .foregroundColor(skipColor)
                                 Text("\(skippedTasksCount)")
                                     .font(.system(size: 11, weight: .medium))
-                                    .foregroundColor(.orange)
+                                    .foregroundColor(skipColor)
                             }
                         }
 
@@ -119,13 +124,13 @@ struct CompletionView: View {
                             // Status indicator
                             Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "forward.circle.fill")
                                 .font(.system(size: 14))
-                                .foregroundColor(task.isCompleted ? .green : .orange)
+                                .foregroundColor(task.isCompleted ? .green : skipColor)
                                 .frame(width: 20)
 
                             // Task number
                             Text("\(index + 1)")
                                 .font(.system(size: 12, weight: .medium, design: .monospaced))
-                                .foregroundColor(task.isCompleted ? .secondary : .orange.opacity(0.6))
+                                .foregroundColor(task.isCompleted ? .secondary : skipColor.opacity(0.7))
                                 .frame(width: 24, alignment: .trailing)
 
                             // Task name (strikethrough for skipped)
@@ -138,7 +143,7 @@ struct CompletionView: View {
                                 Text(task.name)
                                     .font(.system(size: 13, weight: .regular))
                                     .foregroundColor(.secondary)
-                                    .strikethrough(true, color: .orange.opacity(0.7))
+                                    .strikethrough(true, color: skipColor.opacity(0.7))
                                     .italic()
                                     .lineLimit(1)
                             }
@@ -148,18 +153,18 @@ struct CompletionView: View {
                             // Duration
                             Text(formatDuration(task.durationMinutes))
                                 .font(.system(size: 12, design: .monospaced))
-                                .foregroundColor(task.isCompleted ? .secondary : .orange.opacity(0.7))
+                                .foregroundColor(task.isCompleted ? .secondary : skipColor.opacity(0.8))
                                 .frame(minWidth: 40, alignment: .trailing)
-                                .strikethrough(!task.isCompleted, color: .orange.opacity(0.5))
+                                .strikethrough(!task.isCompleted, color: skipColor.opacity(0.6))
 
                             // Status
                             if !task.isCompleted {
                                 Text("SKIPPED")
                                     .font(.system(size: 9, weight: .bold))
-                                    .foregroundColor(.orange)
+                                    .foregroundColor(skipColor)
                                     .padding(.horizontal, 6)
                                     .padding(.vertical, 3)
-                                    .background(Color.orange.opacity(0.2))
+                                    .background(skipColor.opacity(0.2))
                                     .cornerRadius(3)
                             }
                         }
@@ -168,7 +173,7 @@ struct CompletionView: View {
                         .background(
                             task.isCompleted
                                 ? (index % 2 == 0 ? Color.clear : Color.secondary.opacity(0.04))
-                                : Color.orange.opacity(0.06)
+                                : skipColor.opacity(0.06)
                         )
                         .opacity(task.isCompleted ? 1.0 : 0.75)
 
