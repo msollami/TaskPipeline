@@ -622,11 +622,13 @@ struct CompactTimelineView: View {
                             let currentIndex = min(timerManager.currentTaskIndex + 1, timerManager.tasks.count)
                             Text("Task \(currentIndex)/\(timerManager.tasks.count)")
                                 .font(.system(size: 13, weight: .medium, design: .monospaced))
-                                .foregroundColor(.secondary)
+                                .foregroundColor(.primary)
+                                .shadow(color: .black.opacity(0.4), radius: 3, x: 0, y: 1)
 
                             Text("\(formattedTotalRemaining) left")
                                 .font(.system(size: 9, weight: .regular))
-                                .foregroundColor(.secondary.opacity(0.7))
+                                .foregroundColor(.primary.opacity(0.8))
+                                .shadow(color: .black.opacity(0.3), radius: 2, x: 0, y: 1)
                         }
                     }
                     .frame(width: 80, alignment: .trailing)
